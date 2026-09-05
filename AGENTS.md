@@ -118,8 +118,8 @@ Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
 - Probe with `async with async_get_temporary_unit(...)` and both block reads.
   Communication failures must return `cannot_connect`.
 - Unique IDs are `serial:<serial-path>:<unit-id>` and
-  `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; do not mix
-  `/dev/ttyACM*` with `/dev/serial/by-*` aliases.
+  `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; consistently
+  use the same stable path for every entry sharing an adapter.
 - Convert polling failures to `UpdateFailed`; command failures must mark the
   coordinator unavailable and raise `HomeAssistantError`. Do not reload an
   entry on a drop.
@@ -143,8 +143,8 @@ translation, unknown registers, discovery, BACnet, and unvalidated units.
 
 ## Hardware safety
 
-- Validated setup: `/dev/ttyACM1`, 19200 baud, 8N1 RTU, Unit ID 1, five-second
-  polling. B544 uses RS-485 A+/B-.
+- B544 serial connections use 8N1 RTU at 9600, 19200, or 38400 baud. Every
+  adapter on a shared RS-485 A+/B- bus must have a unique Unit ID.
 - Never run two Modbus masters on one serial port. During migration, remove only
   the old B544 YAML hub; do not touch unrelated ports/hubs.
 - Reads are hardware-validated. Writes follow the manual and need physical
