@@ -8,7 +8,7 @@ This is an independent community integration and is not affiliated with or endor
 
 The read map has been validated with a B544 on an `ADT52UX4RCL8` indoor unit. Write commands follow the Hisense B544(E) manual and must be hardware-validated before relying on them in production.
 
-Every configured B544 is one Home Assistant device. Each polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by a refresh; the integration never uses optimistic state.
+Every configured B544 is one Home Assistant device. Each periodic polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by an immediate targeted read of the affected authoritative DI or IR; the integration never uses optimistic state.
 
 ## Requirements
 

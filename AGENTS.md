@@ -16,8 +16,9 @@ minimal transactions, authoritative device state, and testability.
   `ModbusUnit`. Keep `"dependencies": ["modbus"]` in the manifest.
 - One config entry is one B544/indoor unit and creates exactly one Home Assistant
   Device. Entries with matching endpoint/link settings share HA's connection.
-- Never implement optimistic state. After every FC05/FC06 write, call
-  `await coordinator.async_request_refresh()`; the next device read is truth.
+- Never implement optimistic state. After every FC05/FC06 write, perform a
+  targeted authoritative confirmation read; the value returned by the device is
+  truth. Periodic polling still uses the complete two-block refresh.
 - Do not add speculative features, entities, or undocumented register access.
 - Do not use FC0F/FC10, and do not use FC01/FC03 in v0.1.
 
@@ -47,6 +48,13 @@ FC04 read_input_registers(1, 15)
 Never poll per entity. FC04 offsets start at IR1: `array[0]` is IR1 and
 `array[14]` is IR15. Decode IR1 and IR15 with
 `modbus_connection.decode.decode_int16`.
+
+## Write confirmation invariant
+
+After a write, do not run the complete polling refresh. Confirm only the real
+read-state location: Power/Sleep/Energy Saving/Super/Mute use their respective
+DI, while setpoint/mode/fan use IR2/IR7/IR8. Update the frozen snapshot with
+the returned value using the coordinator; never use the requested value.
 
 ## Modbus map
 

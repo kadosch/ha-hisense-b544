@@ -57,7 +57,12 @@ def coordinator(snapshot: B544State):
             async_set_super=AsyncMock(),
             async_set_mute=AsyncMock(),
         ),
-        async_request_refresh=AsyncMock(),
+        async_confirm_power=AsyncMock(),
+        async_confirm_input_register=AsyncMock(),
+        async_confirm_sleep=AsyncMock(),
+        async_confirm_energy_saving=AsyncMock(),
+        async_confirm_super=AsyncMock(),
+        async_confirm_mute=AsyncMock(),
         last_update_success=True,
     )
 
@@ -84,7 +89,7 @@ def test_climate_state_maps_power_mode_fan_and_temperatures():
 
 
 @pytest.mark.asyncio
-async def test_climate_commands_refresh_only_after_the_write():
+async def test_climate_commands_use_targeted_confirmation_after_the_write():
     coord = coordinator(state(power=False))
     entity = bare_entity(HisenseB544Climate, coord)
 
@@ -98,7 +103,10 @@ async def test_climate_commands_refresh_only_after_the_write():
     coord.device.async_set_fan.assert_awaited_once_with(2)
     coord.device.async_set_mode.assert_awaited_once_with(1)
     coord.device.async_set_power.assert_has_awaits([call(True), call(False)])
-    assert coord.async_request_refresh.await_count == 4
+    coord.async_confirm_input_register.assert_has_awaits(
+        [call(2, "target_temperature"), call(8, "fan_code"), call(7, "mode_code")]
+    )
+    coord.async_confirm_power.assert_has_awaits([call(), call()])
 
 
 @pytest.mark.asyncio
@@ -117,7 +125,10 @@ async def test_switches_reflect_snapshot_and_command_the_correct_helper():
         await entity.async_turn_off()
         getattr(coord.device, expected[description.key]).assert_awaited_once_with(False)
 
-    assert coord.async_request_refresh.await_count == 4
+    coord.async_confirm_sleep.assert_awaited_once()
+    coord.async_confirm_energy_saving.assert_awaited_once()
+    coord.async_confirm_super.assert_awaited_once()
+    coord.async_confirm_mute.assert_awaited_once()
 
 
 def test_binary_and_numeric_sensors_expose_only_documented_values():

@@ -16,6 +16,7 @@ class SwitchDescription:
     name: str
     state: Callable
     command: Callable[[object, bool], Awaitable[None]]
+    confirm: Callable[[object], Awaitable[None]]
 
 
 DESCRIPTIONS = (
@@ -24,21 +25,28 @@ DESCRIPTIONS = (
         "Sleep",
         lambda data: data.sleep,
         lambda device, value: device.async_set_sleep(value),
+        lambda coordinator: coordinator.async_confirm_sleep(),
     ),
     SwitchDescription(
         "energy_saving",
         "Energy Saving",
         lambda data: data.energy_saving,
         lambda device, value: device.async_set_energy_saving(value),
+        lambda coordinator: coordinator.async_confirm_energy_saving(),
     ),
     SwitchDescription(
         "super",
         "Super",
         lambda data: data.super_mode,
         lambda device, value: device.async_set_super(value),
+        lambda coordinator: coordinator.async_confirm_super(),
     ),
     SwitchDescription(
-        "mute", "Mute", lambda data: data.mute, lambda device, value: device.async_set_mute(value)
+        "mute",
+        "Mute",
+        lambda data: data.mute,
+        lambda device, value: device.async_set_mute(value),
+        lambda coordinator: coordinator.async_confirm_mute(),
     ),
 )
 
@@ -62,8 +70,8 @@ class HisenseB544Switch(HisenseB544Entity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         await self.entity_description.command(self.coordinator.device, True)
-        await self.coordinator.async_request_refresh()
+        await self.entity_description.confirm(self.coordinator)
 
     async def async_turn_off(self, **kwargs) -> None:
         await self.entity_description.command(self.coordinator.device, False)
-        await self.coordinator.async_request_refresh()
+        await self.entity_description.confirm(self.coordinator)
