@@ -53,7 +53,7 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
     @property
     def hvac_mode(self):
         state = self.coordinator.data
-        return HVACMode.OFF if not state.power else READ_MODE.get(state.mode_code, HVACMode.AUTO)
+        return HVACMode.OFF if not state.power else READ_MODE.get(state.mode_code)
 
     @property
     def current_temperature(self):

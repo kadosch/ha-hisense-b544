@@ -1,7 +1,7 @@
 """Tests for entity state mapping and non-optimistic commands."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 from homeassistant.components.climate import ClimateEntityFeature, HVACMode
@@ -78,7 +78,7 @@ def test_climate_state_maps_power_mode_fan_and_temperatures():
     assert entity.fan_mode is None
 
     entity.coordinator.data = state(mode_code=99)
-    assert entity.hvac_mode is HVACMode.AUTO
+    assert entity.hvac_mode is None
 
 
 def test_climate_has_registry_identity_and_declares_controls():
@@ -122,8 +122,9 @@ async def test_switches_reflect_snapshot_and_command_the_correct_helper():
         entity = bare_entity(HisenseB544Switch, coord)
         entity.entity_description = description
         assert entity.is_on is True
+        await entity.async_turn_on()
         await entity.async_turn_off()
-        getattr(coord, expected[description.key]).assert_awaited_once_with(False)
+        getattr(coord, expected[description.key]).assert_has_awaits([call(True), call(False)])
 
 
 def test_binary_and_numeric_sensors_expose_only_documented_values():
