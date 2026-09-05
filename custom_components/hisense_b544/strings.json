@@ -1,11 +1,9 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Hisense B544",
-        "description": "Connect one B544(E) Modbus RTU unit.",
-        "data": {"device": "Serial device", "baudrate": "Baud rate", "unit_id": "Unit ID", "name": "Name", "model": "Indoor unit model"}
-      }
+      "user": {"title": "Hisense B544", "description": "Choose the transport to reach the B544(E).", "data": {"transport": "Transport"}},
+      "serial": {"title": "Serial RTU", "description": "Connect one directly attached B544(E) Modbus RTU unit.", "data": {"device": "Serial device", "baudrate": "Baud rate", "unit_id": "Unit ID", "name": "Name", "model": "Indoor unit model"}},
+      "tcp": {"title": "Modbus TCP", "description": "Connect one B544(E) through a Modbus TCP to RTU gateway.", "data": {"host": "Gateway host", "port": "Gateway port", "unit_id": "Unit ID", "name": "Name", "model": "Indoor unit model"}}
     },
     "error": {"cannot_connect": "Cannot connect to the B544", "invalid_unit_id": "Unit ID must be between 1 and 255"}
   },

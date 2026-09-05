@@ -1,6 +1,6 @@
 # Hisense B544(E) for Home Assistant
 
-Local Home Assistant custom integration for Hisense B544(E) central-control adapters over Modbus RTU. It does not use ConnectLife or any cloud service.
+Local Home Assistant custom integration for Hisense B544(E) central-control adapters over Modbus RTU. It supports either a direct serial RTU connection or a Modbus TCP to RTU gateway. It does not use ConnectLife or any cloud service.
 
 This is an independent community integration and is not affiliated with or endorsed by Hisense.
 
@@ -17,7 +17,9 @@ Every configured B544 is one Home Assistant device. Each polling cycle uses exac
 - Home Assistant 2026.9.0 or newer.
 - No other Modbus master may access the same serial port. Remove only the old B544 YAML hub before enabling this integration; unrelated Modbus ports can remain configured.
 
-The default B544 baud rate is 9600. This integration also supports 19200 and 38400 baud, 8N1 RTU. Prefer a stable `/dev/serial/by-id/...` path: serial aliases are treated as distinct endpoints by the shared Modbus connection manager.
+For direct serial RTU, the default B544 baud rate is 9600; 19200 and 38400 baud are also supported, with 8N1 RTU. Prefer a stable `/dev/serial/by-id/...` path: serial aliases are treated as distinct endpoints by the shared Modbus connection manager.
+
+For a Modbus TCP to RTU gateway, select **Modbus TCP** in the setup flow and provide its host, port (default: 502), and the B544 Unit ID. The gateway must expose the B544's RTU slave IDs unchanged.
 
 ## Installation
 
@@ -31,7 +33,7 @@ Copy `custom_components/hisense_b544` into `/config/custom_components/`, restart
 
 ## Configuration
 
-Add one entry per B544/interior unit. Entries on the same serial endpoint and link settings share Home Assistant's single physical connection.
+Add one entry per B544/interior unit. Choose **Serial RTU** for a directly connected RS-485 adapter, or **Modbus TCP** for an RTU gateway. Entries on the same serial endpoint or TCP gateway and link settings share Home Assistant's single physical connection.
 
 For the validated setup: serial device `/dev/ttyACM1`, 19200 baud, Unit ID `1`, model `ADT52UX4RCL8`.
 
