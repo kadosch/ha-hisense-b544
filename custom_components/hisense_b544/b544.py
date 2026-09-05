@@ -1,4 +1,4 @@
-"""Hisense B544(E) Modbus RTU protocol.
+"""Hisense B544(E) Modbus protocol.
 
 This module deliberately knows no Home Assistant entity classes.  One state
 refresh is exactly FC02(0, 16) followed by FC04(1, 15).
@@ -33,6 +33,15 @@ DI_DEFROST = 10
 DI_COMPRESSOR = 11
 DI_SUPER = 14
 DI_MUTE = 15
+
+# FC04 addresses
+IR_INDOOR_TEMPERATURE = 1
+IR_TARGET_TEMPERATURE = 2
+IR_MODE = 7
+IR_FAN = 8
+IR_SWING = 9
+IR_FAULT = 12
+IR_OUTLET_TEMPERATURE = 15
 
 # FC05 addresses. Super and mute intentionally differ from their read offsets.
 COIL_POWER = 0
@@ -71,13 +80,13 @@ class B544Device:
             compressor=di[DI_COMPRESSOR],
             super_mode=di[DI_SUPER],
             mute=di[DI_MUTE],
-            indoor_temperature=decode_int16([ir[0]]),
-            target_temperature=ir[1],
-            mode_code=ir[6],
-            fan_code=ir[7],
-            swing_code=ir[8],
-            fault_code=ir[11],
-            outlet_temperature=decode_int16([ir[14]]),
+            indoor_temperature=decode_int16([ir[IR_INDOOR_TEMPERATURE - 1]]),
+            target_temperature=ir[IR_TARGET_TEMPERATURE - 1],
+            mode_code=ir[IR_MODE - 1],
+            fan_code=ir[IR_FAN - 1],
+            swing_code=ir[IR_SWING - 1],
+            fault_code=ir[IR_FAULT - 1],
+            outlet_temperature=decode_int16([ir[IR_OUTLET_TEMPERATURE - 1]]),
             raw_di=di,
             raw_ir=ir,
         )
