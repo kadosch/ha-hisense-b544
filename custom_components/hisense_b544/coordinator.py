@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import replace
 from datetime import timedelta
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from modbus_connection import ModbusError
 
@@ -19,14 +22,23 @@ from .b544 import (
 from .const import DOMAIN
 from .models import B544State
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
     """Fetch one B544 snapshot every polling interval."""
 
-    def __init__(self, hass, device: B544Device, scan_interval: int) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        device: B544Device,
+        scan_interval: int,
+    ) -> None:
         super().__init__(
             hass,
-            logger=None,
+            logger=_LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
             always_update=False,

@@ -51,7 +51,7 @@ async def test_setup_uses_shared_unit_and_sets_spacing():
         assert await async_setup_entry(hass, entry) is True
 
     get_unit.assert_called_once()
-    factory.assert_called_once_with(hass, ANY, 15)
+    factory.assert_called_once_with(hass, entry, ANY, 15)
     unit.set_message_spacing.assert_called_once_with(MESSAGE_SPACING)
     coordinator.async_config_entry_first_refresh.assert_awaited_once()
     hass.config_entries.async_forward_entry_setups.assert_awaited_once_with(entry, PLATFORMS)

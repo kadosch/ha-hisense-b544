@@ -27,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: HisenseB544ConfigEntry) 
     scan_interval = entry.options.get(
         CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     )
-    coordinator = HisenseB544Coordinator(hass, B544Device(unit), scan_interval)
+    coordinator = HisenseB544Coordinator(hass, entry, B544Device(unit), scan_interval)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
