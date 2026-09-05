@@ -14,6 +14,7 @@ from custom_components.hisense_b544.const import (
     CONF_UNIT_ID,
     MESSAGE_SPACING,
     PLATFORMS,
+    TRANSPORT_SERIAL,
 )
 
 
@@ -24,6 +25,7 @@ async def test_setup_uses_shared_unit_and_sets_spacing():
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_forward_entry_setups=AsyncMock()))
     entry = SimpleNamespace(
         data={
+            "transport": TRANSPORT_SERIAL,
             CONF_DEVICE: "/dev/serial/by-id/b544",
             CONF_BAUDRATE: 19200,
             CONF_UNIT_ID: 2,

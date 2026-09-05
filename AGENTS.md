@@ -101,12 +101,15 @@ Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
 
 ## Config flow
 
-- Fields: serial device, baud rate (9600/19200/38400), Unit ID (1..255), name,
-  and optional model. Link settings are fixed at 8N1 RTU.
+- First choose Serial RTU or Modbus TCP. Serial fields are serial device and baud
+  rate (9600/19200/38400); TCP fields are host and port (default 502). Both use
+  Unit ID (1..255), name, and optional model. Serial link settings are fixed at
+  8N1 RTU.
 - Probe with `async with async_get_temporary_unit(...)` and both block reads.
   Communication failures must return `cannot_connect`.
-- Unique ID is `serial:<serial-path>:<unit-id>`. Paths compare literally; do
-  not mix `/dev/ttyACM*` with `/dev/serial/by-*` aliases.
+- Unique IDs are `serial:<serial-path>:<unit-id>` and
+  `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; do not mix
+  `/dev/ttyACM*` with `/dev/serial/by-*` aliases.
 - Convert Modbus failures to `UpdateFailed`; do not reload an entry on a drop.
 
 ## v0.1 scope
