@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from homeassistant.components.climate import ClimateEntity, HVACMode
+from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature, HVACMode
 from homeassistant.const import UnitOfTemperature
 
 from .entity import HisenseB544Entity
@@ -42,6 +42,13 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
     _attr_min_temp = 18
     _attr_max_temp = 32
     _attr_target_temperature_step = 1
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
+    )
+
+    def __init__(self, coordinator, entry) -> None:
+        super().__init__(coordinator, entry)
+        self._attr_unique_id = f"{entry.entry_id}_climate"
 
     @property
     def hvac_mode(self):

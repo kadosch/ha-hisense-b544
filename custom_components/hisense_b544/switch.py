@@ -5,48 +5,46 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 
 from .entity import HisenseB544Entity
 
 
-@dataclass(frozen=True)
-class SwitchDescription:
-    key: str
-    name: str
+@dataclass(frozen=True, kw_only=True)
+class B544SwitchEntityDescription(SwitchEntityDescription):
     state: Callable
     command: Callable[[object, bool], Awaitable[None]]
     confirm: Callable[[object], Awaitable[None]]
 
 
 DESCRIPTIONS = (
-    SwitchDescription(
-        "sleep",
-        "Sleep",
-        lambda data: data.sleep,
-        lambda device, value: device.async_set_sleep(value),
-        lambda coordinator: coordinator.async_confirm_sleep(),
+    B544SwitchEntityDescription(
+        key="sleep",
+        translation_key="sleep",
+        state=lambda data: data.sleep,
+        command=lambda device, value: device.async_set_sleep(value),
+        confirm=lambda coordinator: coordinator.async_confirm_sleep(),
     ),
-    SwitchDescription(
-        "energy_saving",
-        "Energy Saving",
-        lambda data: data.energy_saving,
-        lambda device, value: device.async_set_energy_saving(value),
-        lambda coordinator: coordinator.async_confirm_energy_saving(),
+    B544SwitchEntityDescription(
+        key="energy_saving",
+        translation_key="energy_saving",
+        state=lambda data: data.energy_saving,
+        command=lambda device, value: device.async_set_energy_saving(value),
+        confirm=lambda coordinator: coordinator.async_confirm_energy_saving(),
     ),
-    SwitchDescription(
-        "super",
-        "Super",
-        lambda data: data.super_mode,
-        lambda device, value: device.async_set_super(value),
-        lambda coordinator: coordinator.async_confirm_super(),
+    B544SwitchEntityDescription(
+        key="super",
+        translation_key="super",
+        state=lambda data: data.super_mode,
+        command=lambda device, value: device.async_set_super(value),
+        confirm=lambda coordinator: coordinator.async_confirm_super(),
     ),
-    SwitchDescription(
-        "mute",
-        "Mute",
-        lambda data: data.mute,
-        lambda device, value: device.async_set_mute(value),
-        lambda coordinator: coordinator.async_confirm_mute(),
+    B544SwitchEntityDescription(
+        key="mute",
+        translation_key="mute",
+        state=lambda data: data.mute,
+        command=lambda device, value: device.async_set_mute(value),
+        confirm=lambda coordinator: coordinator.async_confirm_mute(),
     ),
 )
 
@@ -58,10 +56,9 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
 
 
 class HisenseB544Switch(HisenseB544Entity, SwitchEntity):
-    def __init__(self, coordinator, entry, description: SwitchDescription) -> None:
+    def __init__(self, coordinator, entry, description: B544SwitchEntityDescription) -> None:
         super().__init__(coordinator, entry)
         self.entity_description = description
-        self._attr_translation_key = description.key
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
 
     @property
