@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.hisense_b544.config_flow import HisenseB544ConfigFlow
+from custom_components.hisense_b544.config_flow import HisenseB544ConfigFlow, HisenseB544OptionsFlow
 from custom_components.hisense_b544.const import (
     CONF_BAUDRATE,
     CONF_DEVICE,
@@ -13,6 +13,7 @@ from custom_components.hisense_b544.const import (
     CONF_MODEL,
     CONF_NAME,
     CONF_PORT,
+    CONF_SCAN_INTERVAL,
     CONF_TRANSPORT,
     CONF_UNIT_ID,
     TRANSPORT_SERIAL,
@@ -37,6 +38,7 @@ def user_input(**changes):
         CONF_UNIT_ID: 1,
         CONF_NAME: "ADT52 P1",
         CONF_MODEL: "ADT52UX4RCL8",
+        CONF_SCAN_INTERVAL: 5,
     }
     data.update(changes)
     return data
@@ -138,3 +140,19 @@ async def test_valid_tcp_flow_probes_gateway_and_creates_entry():
 
     current.async_set_unique_id.assert_awaited_once_with("tcp:192.0.2.10:1502:2")
     get_temporary.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_options_flow_shows_current_interval_and_saves_new_value():
+    entry = SimpleNamespace(options={CONF_SCAN_INTERVAL: 15}, data={})
+    current = HisenseB544OptionsFlow()
+    current.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_get_known_entry=MagicMock(return_value=entry))
+    )
+    current.handler = "entry-id"
+    current.async_show_form = MagicMock(return_value={"type": "form"})
+    current.async_create_entry = MagicMock(return_value={"type": "create_entry"})
+
+    assert await current.async_step_init() == {"type": "form"}
+    assert await current.async_step_init({CONF_SCAN_INTERVAL: 30}) == {"type": "create_entry"}
+    current.async_create_entry.assert_called_once_with(title="", data={CONF_SCAN_INTERVAL: 30})

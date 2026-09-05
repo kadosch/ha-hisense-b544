@@ -37,6 +37,8 @@ Add one entry per B544/interior unit. Choose **Serial RTU** for a directly conne
 
 For the validated setup: serial device `/dev/ttyACM1`, 19200 baud, Unit ID `1`, model `ADT52UX4RCL8`.
 
+The polling interval defaults to 5 seconds. It can be set during setup and changed later through **Configure** on the integration card. Valid values are 1 to 3600 seconds; use a longer interval where frequent state changes are not required.
+
 ## Entities
 
 - Climate: power, mode, target temperature, fan mode.

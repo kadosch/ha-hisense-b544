@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant.components.modbus import async_get_temporary_unit
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigFlow, OptionsFlow
 from homeassistant.data_entry_flow import FlowResult
 from modbus_connection import ModbusError
 
@@ -17,12 +17,14 @@ from .const import (
     CONF_MODEL,
     CONF_NAME,
     CONF_PORT,
+    CONF_SCAN_INTERVAL,
     CONF_TRANSPORT,
     CONF_UNIT_ID,
     DEFAULT_BAUDRATE,
     DEFAULT_MODEL,
     DEFAULT_NAME,
     DEFAULT_PORT,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     TRANSPORT_SERIAL,
     TRANSPORT_TCP,
@@ -35,6 +37,11 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
     """Create a config entry for one B544 Modbus unit."""
 
     VERSION = 1
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Return the options flow for a configured B544."""
+        return HisenseB544OptionsFlow()
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Choose the Modbus transport."""
@@ -79,6 +86,10 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
                     return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
 
         schema: dict = {
+            vol.Required(
+                CONF_SCAN_INTERVAL,
+                default=(user_input or {}).get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
             vol.Required(CONF_UNIT_ID, default=(user_input or {}).get(CONF_UNIT_ID, 1)): vol.Coerce(
                 int
             ),
@@ -105,4 +116,28 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         return self.async_show_form(
             step_id=transport, data_schema=vol.Schema(schema), errors=errors
+        )
+
+
+class HisenseB544OptionsFlow(OptionsFlow):
+    """Configure runtime polling behaviour."""
+
+    async def async_step_init(self, user_input: dict | None = None) -> FlowResult:
+        """Configure the polling interval."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_SCAN_INTERVAL, default=current): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=3600)
+                    )
+                }
+            ),
         )
