@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ha-hisense-b544"
+version = "0.1.0"
+description = "Home Assistant custom integration for Hisense B544(E) over Modbus RTU"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+branch = true
+source = ["custom_components.hisense_b544"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 75
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

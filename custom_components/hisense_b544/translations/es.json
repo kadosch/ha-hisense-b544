@@ -1,0 +1,4 @@
+{
+  "config": {"step": {"user": {"title": "Hisense B544", "description": "Conecta una unidad B544(E) Modbus RTU.", "data": {"device": "Dispositivo serie", "baudrate": "Baudios", "unit_id": "ID de unidad", "name": "Nombre", "model": "Modelo de unidad interior"}}}, "error": {"cannot_connect": "No se puede conectar al B544", "invalid_unit_id": "El ID de unidad debe estar entre 1 y 255"}},
+  "entity": {"switch": {"sleep": {"name": "Sleep"}, "energy_saving": {"name": "Ahorro de energía"}, "super": {"name": "Super"}, "mute": {"name": "Silencio"}}, "binary_sensor": {"compressor": {"name": "Compresor"}, "defrost": {"name": "Desescarche"}, "electric_heater": {"name": "Calentador eléctrico"}}, "sensor": {"indoor_temperature": {"name": "Temperatura interior"}, "outlet_temperature": {"name": "Temperatura de impulsión"}, "fault_code": {"name": "Código de fallo"}}}
+}
