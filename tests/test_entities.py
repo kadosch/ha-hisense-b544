@@ -1,7 +1,7 @@
 """Tests for entity state mapping and non-optimistic commands."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock
 
 import pytest
 from homeassistant.components.climate import ClimateEntityFeature, HVACMode
@@ -48,22 +48,14 @@ def state(**changes) -> B544State:
 def coordinator(snapshot: B544State):
     return SimpleNamespace(
         data=snapshot,
-        device=SimpleNamespace(
-            async_set_power=AsyncMock(),
-            async_set_mode=AsyncMock(),
-            async_set_target_temperature=AsyncMock(),
-            async_set_fan=AsyncMock(),
-            async_set_sleep=AsyncMock(),
-            async_set_energy_saving=AsyncMock(),
-            async_set_super=AsyncMock(),
-            async_set_mute=AsyncMock(),
-        ),
-        async_confirm_power=AsyncMock(),
-        async_confirm_input_register=AsyncMock(),
-        async_confirm_sleep=AsyncMock(),
-        async_confirm_energy_saving=AsyncMock(),
-        async_confirm_super=AsyncMock(),
-        async_confirm_mute=AsyncMock(),
+        async_set_power=AsyncMock(),
+        async_set_mode=AsyncMock(),
+        async_set_target_temperature=AsyncMock(),
+        async_set_fan=AsyncMock(),
+        async_set_sleep=AsyncMock(),
+        async_set_energy_saving=AsyncMock(),
+        async_set_super=AsyncMock(),
+        async_set_mute=AsyncMock(),
         last_update_success=True,
     )
 
@@ -111,14 +103,10 @@ async def test_climate_commands_use_targeted_confirmation_after_the_write():
     await entity.async_set_hvac_mode(HVACMode.HEAT)
     await entity.async_set_hvac_mode(HVACMode.OFF)
 
-    coord.device.async_set_target_temperature.assert_awaited_once_with(25)
-    coord.device.async_set_fan.assert_awaited_once_with(2)
-    coord.device.async_set_mode.assert_awaited_once_with(1)
-    coord.device.async_set_power.assert_has_awaits([call(True), call(False)])
-    coord.async_confirm_input_register.assert_has_awaits(
-        [call(2, "target_temperature"), call(8, "fan_code"), call(7, "mode_code")]
-    )
-    coord.async_confirm_power.assert_has_awaits([call(), call()])
+    coord.async_set_target_temperature.assert_awaited_once_with(25)
+    coord.async_set_fan.assert_awaited_once_with(2)
+    coord.async_set_mode.assert_awaited_once_with(1)
+    coord.async_set_power.assert_awaited_once_with(False)
 
 
 @pytest.mark.asyncio
@@ -135,12 +123,7 @@ async def test_switches_reflect_snapshot_and_command_the_correct_helper():
         entity.entity_description = description
         assert entity.is_on is True
         await entity.async_turn_off()
-        getattr(coord.device, expected[description.key]).assert_awaited_once_with(False)
-
-    coord.async_confirm_sleep.assert_awaited_once()
-    coord.async_confirm_energy_saving.assert_awaited_once()
-    coord.async_confirm_super.assert_awaited_once()
-    coord.async_confirm_mute.assert_awaited_once()
+        getattr(coord, expected[description.key]).assert_awaited_once_with(False)
 
 
 def test_binary_and_numeric_sensors_expose_only_documented_values():

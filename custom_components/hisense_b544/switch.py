@@ -14,7 +14,6 @@ from .entity import HisenseB544Entity
 class B544SwitchEntityDescription(SwitchEntityDescription):
     state: Callable
     command: Callable[[object, bool], Awaitable[None]]
-    confirm: Callable[[object], Awaitable[None]]
 
 
 DESCRIPTIONS = (
@@ -22,29 +21,25 @@ DESCRIPTIONS = (
         key="sleep",
         translation_key="sleep",
         state=lambda data: data.sleep,
-        command=lambda device, value: device.async_set_sleep(value),
-        confirm=lambda coordinator: coordinator.async_confirm_sleep(),
+        command=lambda coordinator, value: coordinator.async_set_sleep(value),
     ),
     B544SwitchEntityDescription(
         key="energy_saving",
         translation_key="energy_saving",
         state=lambda data: data.energy_saving,
-        command=lambda device, value: device.async_set_energy_saving(value),
-        confirm=lambda coordinator: coordinator.async_confirm_energy_saving(),
+        command=lambda coordinator, value: coordinator.async_set_energy_saving(value),
     ),
     B544SwitchEntityDescription(
         key="super",
         translation_key="super",
         state=lambda data: data.super_mode,
-        command=lambda device, value: device.async_set_super(value),
-        confirm=lambda coordinator: coordinator.async_confirm_super(),
+        command=lambda coordinator, value: coordinator.async_set_super(value),
     ),
     B544SwitchEntityDescription(
         key="mute",
         translation_key="mute",
         state=lambda data: data.mute,
-        command=lambda device, value: device.async_set_mute(value),
-        confirm=lambda coordinator: coordinator.async_confirm_mute(),
+        command=lambda coordinator, value: coordinator.async_set_mute(value),
     ),
 )
 
@@ -66,9 +61,7 @@ class HisenseB544Switch(HisenseB544Entity, SwitchEntity):
         return self.entity_description.state(self.coordinator.data)
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self.entity_description.command(self.coordinator.device, True)
-        await self.entity_description.confirm(self.coordinator)
+        await self.entity_description.command(self.coordinator, True)
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.entity_description.command(self.coordinator.device, False)
-        await self.entity_description.confirm(self.coordinator)
+        await self.entity_description.command(self.coordinator, False)
