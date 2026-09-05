@@ -97,6 +97,20 @@ class B544Device:
     async def async_set_mute(self, value: bool) -> None:
         await self._unit.write_coil(COIL_MUTE, value)
 
+    async def async_read_discrete_input(self, address: int) -> bool:
+        """Read one authoritative discrete-input status value."""
+        values = await self._unit.read_discrete_inputs(address, 1)
+        if len(values) != 1:
+            raise ValueError("B544 returned an incomplete discrete-input response")
+        return values[0]
+
+    async def async_read_input_register(self, address: int) -> int:
+        """Read one authoritative input-register status value."""
+        values = await self._unit.read_input_registers(address, 1)
+        if len(values) != 1:
+            raise ValueError("B544 returned an incomplete input-register response")
+        return values[0]
+
     async def async_set_target_temperature(self, value: float) -> None:
         if value != int(value) or not MIN_TEMPERATURE <= value <= MAX_TEMPERATURE:
             raise ValueError(

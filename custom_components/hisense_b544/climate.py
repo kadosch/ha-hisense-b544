@@ -64,19 +64,21 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
         temperature = kwargs.get("temperature")
         if temperature is not None:
             await self.coordinator.device.async_set_target_temperature(temperature)
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_confirm_input_register(2, "target_temperature")
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         await self.coordinator.device.async_set_fan(WRITE_FAN[fan_mode])
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_confirm_input_register(8, "fan_code")
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode is HVACMode.OFF:
             await self.coordinator.device.async_set_power(False)
+            await self.coordinator.async_confirm_power()
         else:
             # The documented mode is sent before switching power on. Hardware validation
             # is still required for this sequence.
             await self.coordinator.device.async_set_mode(WRITE_MODE[hvac_mode])
             if not self.coordinator.data.power:
                 await self.coordinator.device.async_set_power(True)
-        await self.coordinator.async_request_refresh()
+                await self.coordinator.async_confirm_power()
+            await self.coordinator.async_confirm_input_register(7, "mode_code")
