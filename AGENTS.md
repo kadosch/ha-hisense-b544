@@ -29,7 +29,8 @@ ConfigEntry -> async_get_unit() -> B544Device -> Coordinator -> entities
 
 - `b544.py` owns protocol details and addresses; entities must not contain them.
 - `models.py` owns immutable, comparable `B544State` snapshots.
-- `coordinator.py` polls every five seconds with `always_update=False`.
+- `coordinator.py` uses the per-entry configurable polling interval (default five
+  seconds) with `always_update=False`.
 - All entry entities must share `DeviceInfo` from `entity.py`.
 - Set `unit.set_message_spacing(0.03)` per entry. Do not add global spacing
   without a reproducible communication issue.
@@ -111,6 +112,9 @@ Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
   `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; do not mix
   `/dev/ttyACM*` with `/dev/serial/by-*` aliases.
 - Convert Modbus failures to `UpdateFailed`; do not reload an entry on a drop.
+- The polling interval is `scan_interval`, accepts 1..3600 seconds, defaults to
+  5, and may be changed through the options flow. Option changes reload the
+  config entry.
 
 ## v0.1 scope
 

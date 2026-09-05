@@ -7,6 +7,7 @@
     },
     "error": {"cannot_connect": "Cannot connect to the B544", "invalid_unit_id": "Unit ID must be between 1 and 255"}
   },
+  "options": {"step": {"init": {"data": {"scan_interval": "Polling interval (seconds)"}}}},
   "entity": {
     "switch": {"sleep": {"name": "Sleep"}, "energy_saving": {"name": "Energy Saving"}, "super": {"name": "Super"}, "mute": {"name": "Mute"}},
     "binary_sensor": {"compressor": {"name": "Compressor"}, "defrost": {"name": "Defrost"}, "electric_heater": {"name": "Electric Heater"}},
