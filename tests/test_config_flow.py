@@ -41,7 +41,7 @@ def user_input(**changes):
         CONF_DEVICE: "/dev/serial/by-id/b544",
         CONF_BAUDRATE: 19200,
         CONF_UNIT_ID: 1,
-        CONF_NAME: "ADT52 P1",
+        CONF_NAME: "Unit A",
         CONF_MODEL: "ADT52UX4RCL8",
         CONF_SCAN_INTERVAL: 5,
     }
@@ -88,7 +88,7 @@ async def test_valid_flow_probes_two_blocks_then_creates_entry():
     read_state.assert_awaited_once()
     expected = user_input()
     expected[CONF_TRANSPORT] = TRANSPORT_SERIAL
-    current.async_create_entry.assert_called_once_with(title="ADT52 P1", data=expected)
+    current.async_create_entry.assert_called_once_with(title="Unit A", data=expected)
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_valid_tcp_flow_probes_gateway_and_creates_entry():
             CONF_HOST: "Gateway.LOCAL",
             CONF_PORT: 1502,
             CONF_UNIT_ID: 2,
-            CONF_NAME: "ADT52 P2",
+            CONF_NAME: "Unit B",
         }
     )
     data.pop(CONF_DEVICE)

@@ -34,7 +34,7 @@ async def test_setup_uses_shared_unit_and_sets_spacing():
             CONF_DEVICE: "/dev/serial/by-id/b544",
             CONF_BAUDRATE: 19200,
             CONF_UNIT_ID: 2,
-            CONF_NAME: "ADT52 P2",
+            CONF_NAME: "Unit B",
             CONF_MODEL: "ADT52UX4RCL8",
             CONF_SCAN_INTERVAL: 15,
         }

@@ -35,8 +35,6 @@ Copy `custom_components/hisense_b544` into `/config/custom_components/`, restart
 
 Add one entry per B544/interior unit. Choose **Serial RTU** for a directly connected RS-485 adapter, or **Modbus TCP** for an RTU gateway. Entries on the same serial endpoint or TCP gateway and link settings share Home Assistant's single physical connection.
 
-For the validated setup: serial device `/dev/ttyACM1`, 19200 baud, Unit ID `1`, model `ADT52UX4RCL8`.
-
 The polling interval defaults to 5 seconds. It can be set during setup and changed later through **Configure** on the integration card. Valid values are 5 to 3600 seconds; use a longer interval where frequent state changes are not required.
 
 ## Entities

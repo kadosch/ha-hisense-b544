@@ -42,7 +42,7 @@ async def test_all_platforms_create_exactly_one_device_and_eleven_entities():
     coordinator = SimpleNamespace(data=snapshot(), last_update_success=True)
     entry = SimpleNamespace(
         entry_id="entry-id",
-        data={CONF_NAME: "ADT52 P1", CONF_MODEL: "ADT52UX4RCL8"},
+        data={CONF_NAME: "Unit A", CONF_MODEL: "ADT52UX4RCL8"},
         runtime_data=coordinator,
     )
     entities = []
@@ -69,5 +69,5 @@ async def test_all_platforms_create_exactly_one_device_and_eleven_entities():
     assert {frozenset(entity.device_info["identifiers"]) for entity in entities} == {
         frozenset({(DOMAIN, "entry-id")})
     }
-    assert {entity.device_info["name"] for entity in entities} == {"ADT52 P1"}
+    assert {entity.device_info["name"] for entity in entities} == {"Unit A"}
     assert {entity.device_info["model"] for entity in entities} == {"ADT52UX4RCL8"}

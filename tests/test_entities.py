@@ -83,7 +83,7 @@ def test_climate_state_maps_power_mode_fan_and_temperatures():
 
 def test_climate_has_registry_identity_and_declares_controls():
     coord = coordinator(state())
-    entry = SimpleNamespace(entry_id="entry-id", data={"name": "ADT52 P1", "model": "ADT52UX4RCL8"})
+    entry = SimpleNamespace(entry_id="entry-id", data={"name": "Unit A", "model": "ADT52UX4RCL8"})
     entity = HisenseB544Climate(coord, entry)
 
     assert entity.unique_id == "entry-id_climate"
