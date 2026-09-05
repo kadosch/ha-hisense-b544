@@ -14,15 +14,16 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_manifest_and_hacs_metadata_are_structurally_valid():
+def test_manifest_and_hacs_metadata_are_publishable():
     manifest = load_json(INTEGRATION / "manifest.json")
     hacs = load_json(ROOT / "hacs.json")
 
     assert manifest["domain"] == DOMAIN
     assert manifest["config_flow"] is True
     assert manifest["dependencies"] == ["modbus"]
-    assert isinstance(manifest["codeowners"], list)
+    assert manifest["codeowners"] == ["@kadosch"]
     assert manifest["documentation"].startswith("https://github.com/")
+    assert "OWNER" not in manifest["documentation"]
     assert manifest["issue_tracker"].endswith("/issues")
     assert hacs == {"name": "Hisense B544", "homeassistant": "2026.9.1"}
 
