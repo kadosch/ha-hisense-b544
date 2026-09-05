@@ -14,7 +14,7 @@ Every configured B544 is one Home Assistant device. Each periodic polling cycle 
 
 - B544(E) configured for Modbus and with a unique Unit ID.
 - RS-485 wired A+ to A+ and B- to B-; follow Hisense termination/topology guidance.
-- Home Assistant 2026.9.0 or newer.
+- Home Assistant 2026.9.1 or newer.
 - No other Modbus master may access the same serial port. Remove only the old B544 YAML hub before enabling this integration; unrelated Modbus ports can remain configured.
 
 For direct serial RTU, the default B544 baud rate is 9600; 19200 and 38400 baud are also supported, with 8N1 RTU. Prefer a stable `/dev/serial/by-id/...` path: serial aliases are treated as distinct endpoints by the shared Modbus connection manager.
@@ -37,7 +37,7 @@ Add one entry per B544/interior unit. Choose **Serial RTU** for a directly conne
 
 For the validated setup: serial device `/dev/ttyACM1`, 19200 baud, Unit ID `1`, model `ADT52UX4RCL8`.
 
-The polling interval defaults to 5 seconds. It can be set during setup and changed later through **Configure** on the integration card. Valid values are 1 to 3600 seconds; use a longer interval where frequent state changes are not required.
+The polling interval defaults to 5 seconds. It can be set during setup and changed later through **Configure** on the integration card. Valid values are 5 to 3600 seconds; use a longer interval where frequent state changes are not required.
 
 ## Entities
 
@@ -46,8 +46,8 @@ The polling interval defaults to 5 seconds. It can be set during setup and chang
 - Binary sensors: Compressor, Defrost, Electric Heater.
 - Sensors: indoor temperature, outlet air temperature, raw fault code.
 
-Swing, electric-heater control, `hvac_action`, fault-code translations, discovery, TCP gateways, and undocumented registers are deliberately outside v0.1.
+Swing, electric-heater control, `hvac_action`, fault-code translations, automatic slave discovery, and undocumented registers are deliberately outside v0.1.
 
 ## Troubleshooting
 
-Enable debug logging for `custom_components.hisense_b544` when diagnosing communications. Check B544 DIP switches for Modbus protocol, baud rate, and address; verify A+/B- polarity and ensure one master owns the serial interface.
+Enable debug logging for `custom_components.hisense_b544` when diagnosing communications. Check B544 DIP switches for Modbus protocol, baud rate, and address; verify A+/B- polarity and ensure one master owns the serial interface. For TCP, confirm that the gateway forwards Modbus unit IDs and that its host and port are reachable from Home Assistant.

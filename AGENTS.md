@@ -3,8 +3,9 @@
 ## Purpose
 
 `hisense_b544` is a community Home Assistant custom integration for Hisense
-B544(E) adapters over local Modbus RTU. It uses no cloud service and is not
-affiliated with Hisense.
+B544(E) adapters over local Modbus. It supports direct serial RTU and Modbus TCP
+through an RTU gateway, uses no cloud service, and is not affiliated with
+Hisense.
 
 Priorities are: protocol correctness, native Home Assistant architecture,
 minimal transactions, authoritative device state, and testability.
@@ -119,8 +120,13 @@ Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
 - Unique IDs are `serial:<serial-path>:<unit-id>` and
   `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; do not mix
   `/dev/ttyACM*` with `/dev/serial/by-*` aliases.
-- Convert Modbus failures to `UpdateFailed`; do not reload an entry on a drop.
-- The polling interval is `scan_interval`, accepts 1..3600 seconds, defaults to
+- Convert polling failures to `UpdateFailed`; command failures must mark the
+  coordinator unavailable and raise `HomeAssistantError`. Do not reload an
+  entry on a drop.
+- Serialize a complete write-confirm sequence against periodic polling with the
+  coordinator operation lock. Do not rely on request-level transport locking
+  for a multi-request semantic operation.
+- The polling interval is `scan_interval`, accepts 5..3600 seconds, defaults to
   5, and may be changed through the options flow. Option changes reload the
   config entry.
 
@@ -132,7 +138,7 @@ Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
 - Sensors: indoor temperature, outlet temperature, raw fault code.
 
 Out of scope: swing, heater control, `hvac_action`, Air Purge, fault-code
-translation, unknown registers, discovery, BACnet, TCP, and unvalidated units.
+translation, unknown registers, discovery, BACnet, and unvalidated units.
 `ADT52UX4RCL8` is the only validated indoor-unit model.
 
 ## Hardware safety
@@ -150,11 +156,12 @@ Run before delivery:
 
 ```bash
 .venv/bin/ruff check .
+.venv/bin/ruff format --check .
 .venv/bin/coverage run -m pytest -q
 .venv/bin/coverage report
 ```
 
-CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 75%).
+CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 90%).
 Add tests for changes to addresses, grouped reads, write order, or config flow.
 Keep executable files under `custom_components/hisense_b544/`, preserve
 `hacs.json`, translations, and the neutral `brand/icon.png`, and do not use
