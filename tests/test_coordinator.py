@@ -1,6 +1,8 @@
 """Coordinator error handling tests."""
 
 import asyncio
+import logging
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -38,6 +40,7 @@ def snapshot() -> B544State:
 def coordinator_with(device):
     coordinator = object.__new__(HisenseB544Coordinator)
     coordinator.device = device
+    coordinator._unit_id = 1
     coordinator.data = snapshot()
     coordinator._operation_lock = asyncio.Lock()
     updates = []
@@ -49,6 +52,24 @@ def coordinator_with(device):
     coordinator.async_set_updated_data = publish
     coordinator.async_set_update_error = MagicMock()
     return coordinator, updates
+
+
+def test_coordinator_initializes_with_home_assistant_runtime_contract():
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(data={"unit_id": 2}, async_on_unload=MagicMock())
+    device = SimpleNamespace()
+
+    coordinator = HisenseB544Coordinator(hass, entry, device, 15)
+
+    assert coordinator.hass is hass
+    assert coordinator.config_entry is entry
+    assert coordinator.device is device
+    assert coordinator.logger.name == "custom_components.hisense_b544.coordinator"
+    assert isinstance(coordinator.logger, logging.Logger)
+    assert coordinator.update_interval == timedelta(seconds=15)
+    assert coordinator.always_update is False
+    assert coordinator._unit_id == 2
+    entry.async_on_unload.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -182,6 +203,21 @@ async def test_each_command_uses_its_targeted_authoritative_confirmation():
 
 
 @pytest.mark.asyncio
+async def test_command_never_publishes_the_requested_value_optimistically():
+    device = SimpleNamespace(
+        async_set_sleep=AsyncMock(),
+        async_read_discrete_input=AsyncMock(return_value=True),
+    )
+    coordinator, _ = coordinator_with(device)
+
+    await coordinator.async_set_sleep(False)
+
+    device.async_set_sleep.assert_awaited_once_with(False)
+    assert coordinator.data.sleep is True
+    assert coordinator.data.raw_di[3] is True
+
+
+@pytest.mark.asyncio
 async def test_failed_command_marks_coordinator_unavailable():
     error = ModbusConnectionError("offline")
     coordinator, _ = coordinator_with(SimpleNamespace(async_set_power=AsyncMock(side_effect=error)))
@@ -190,6 +226,27 @@ async def test_failed_command_marks_coordinator_unavailable():
         await coordinator.async_set_power(True)
 
     coordinator.async_set_update_error.assert_called_once_with(error)
+
+
+@pytest.mark.asyncio
+async def test_successful_command_recovers_coordinator_after_a_command_failure():
+    error = ModbusConnectionError("offline")
+    device = SimpleNamespace(
+        async_set_power=AsyncMock(side_effect=[error, None]),
+        async_read_discrete_input=AsyncMock(return_value=True),
+    )
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(data={"unit_id": 1}, async_on_unload=MagicMock())
+    coordinator = HisenseB544Coordinator(hass, entry, device, 5)
+    coordinator.data = snapshot()
+
+    with pytest.raises(HomeAssistantError):
+        await coordinator.async_set_power(True)
+    assert coordinator.last_update_success is False
+
+    await coordinator.async_set_power(True)
+    assert coordinator.last_update_success is True
+    assert coordinator.data.power is True
 
 
 @pytest.mark.asyncio

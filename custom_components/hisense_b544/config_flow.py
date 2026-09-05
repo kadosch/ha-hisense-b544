@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant.components.modbus import async_get_temporary_unit
 from homeassistant.config_entries import ConfigFlow, OptionsFlow
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.exceptions import HomeAssistantError
 from modbus_connection import ModbusError
 
 from .b544 import B544Device
@@ -26,11 +27,16 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
     TRANSPORT_SERIAL,
     TRANSPORT_TCP,
     TRANSPORTS,
 )
 from .transport import params_from_data, unique_id_from_data
+
+_NON_EMPTY_STRING = vol.All(str, str.strip, vol.Length(min=1))
+_SCAN_INTERVAL = vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL))
 
 
 class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -80,7 +86,7 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
                         self.hass, params_from_data(user_input), user_input[CONF_UNIT_ID]
                     ) as unit:
                         await B544Device(unit).async_read_state()
-                except (ModbusError, ValueError):
+                except HomeAssistantError, ModbusError, ValueError:
                     errors["base"] = "cannot_connect"
                 else:
                     return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
@@ -89,11 +95,13 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required(
                 CONF_SCAN_INTERVAL,
                 default=(user_input or {}).get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=3600)),
-            vol.Required(CONF_UNIT_ID, default=(user_input or {}).get(CONF_UNIT_ID, 1)): vol.Coerce(
-                int
+            ): _SCAN_INTERVAL,
+            vol.Required(CONF_UNIT_ID, default=(user_input or {}).get(CONF_UNIT_ID, 1)): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=255)
             ),
-            vol.Required(CONF_NAME, default=(user_input or {}).get(CONF_NAME, DEFAULT_NAME)): str,
+            vol.Required(
+                CONF_NAME, default=(user_input or {}).get(CONF_NAME, DEFAULT_NAME)
+            ): _NON_EMPTY_STRING,
             vol.Optional(
                 CONF_MODEL, default=(user_input or {}).get(CONF_MODEL, DEFAULT_MODEL)
             ): str,
@@ -102,17 +110,19 @@ class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
             schema |= {
                 vol.Required(
                     CONF_DEVICE, default=(user_input or {}).get(CONF_DEVICE, "/dev/ttyUSB0")
-                ): str,
+                ): _NON_EMPTY_STRING,
                 vol.Required(
                     CONF_BAUDRATE, default=(user_input or {}).get(CONF_BAUDRATE, DEFAULT_BAUDRATE)
                 ): vol.In(BAUDRATES),
             }
         else:
             schema |= {
-                vol.Required(CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")): str,
+                vol.Required(
+                    CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")
+                ): _NON_EMPTY_STRING,
                 vol.Required(
                     CONF_PORT, default=(user_input or {}).get(CONF_PORT, DEFAULT_PORT)
-                ): vol.Coerce(int),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
             }
         return self.async_show_form(
             step_id=transport, data_schema=vol.Schema(schema), errors=errors
@@ -134,10 +144,6 @@ class HisenseB544OptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_SCAN_INTERVAL, default=current): vol.All(
-                        vol.Coerce(int), vol.Range(min=1, max=3600)
-                    )
-                }
+                {vol.Required(CONF_SCAN_INTERVAL, default=current): _SCAN_INTERVAL}
             ),
         )

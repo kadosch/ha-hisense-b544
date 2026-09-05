@@ -31,8 +31,9 @@ def params_from_data(data: dict) -> ModbusSerialParams | ModbusTcpParams:
 
 def unique_id_from_data(data: dict) -> str:
     """Return a stable per-unit identity for the selected transport."""
-    if data[CONF_TRANSPORT] == TRANSPORT_SERIAL:
-        endpoint = data[CONF_DEVICE]
+    params = params_from_data(data)
+    if isinstance(params, ModbusSerialParams):
+        endpoint = params.device
     else:
-        endpoint = f"{data[CONF_HOST]}:{data[CONF_PORT]}"
+        endpoint = f"{params.host}:{params.port}"
     return f"{data[CONF_TRANSPORT]}:{endpoint}:{data[CONF_UNIT_ID]}"

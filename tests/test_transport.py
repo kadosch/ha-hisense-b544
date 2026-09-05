@@ -42,3 +42,14 @@ def test_tcp_transport_parameters_and_identity():
     }
     assert params_from_data(data) == ModbusTcpParams(host="192.0.2.10", port=1502)
     assert unique_id_from_data(data) == "tcp:192.0.2.10:1502:2"
+
+
+def test_tcp_identity_uses_the_connection_library_host_normalization():
+    data = {
+        CONF_TRANSPORT: TRANSPORT_TCP,
+        CONF_HOST: "Gateway.LOCAL",
+        CONF_PORT: 502,
+        CONF_UNIT_ID: 1,
+    }
+
+    assert unique_id_from_data(data) == "tcp:gateway.local:502:1"
