@@ -45,10 +45,13 @@ else
   hacs_repository="${hacs_repository%.git}"
 fi
 
+INPUT_GITHUB_TOKEN="$GITHUB_TOKEN"
+export INPUT_GITHUB_TOKEN
+
 docker run --rm --pull=always \
   -e INPUT_CATEGORY=integration \
   -e INPUT_COMMENT=false \
+  -e INPUT_GITHUB_TOKEN \
   -e "INPUT_REPOSITORY=$hacs_repository" \
-  -e GITHUB_TOKEN \
   -v "$repository_root:/github/workspace" \
   ghcr.io/hacs/action:main
