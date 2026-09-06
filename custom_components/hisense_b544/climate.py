@@ -47,35 +47,43 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
     )
 
     def __init__(self, coordinator, entry) -> None:
+        """Initialize the primary B544 climate entity."""
         super().__init__(coordinator, entry)
         self._attr_unique_id = f"{entry.entry_id}_climate"
 
     @property
     def hvac_mode(self):
+        """Return the current HVAC mode reported by the B544."""
         state = self.coordinator.data
         return HVACMode.OFF if not state.power else READ_MODE.get(state.mode_code)
 
     @property
     def current_temperature(self):
+        """Return the current indoor temperature."""
         return self.coordinator.data.indoor_temperature
 
     @property
     def target_temperature(self):
+        """Return the target temperature reported by the B544."""
         return self.coordinator.data.target_temperature
 
     @property
     def fan_mode(self):
+        """Return the current fan mode reported by the B544."""
         return READ_FAN.get(self.coordinator.data.fan_code)
 
     async def async_set_temperature(self, **kwargs) -> None:
+        """Set and authoritatively confirm the target temperature."""
         temperature = kwargs.get("temperature")
         if temperature is not None:
             await self.coordinator.async_set_target_temperature(temperature)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
+        """Set and authoritatively confirm the fan mode."""
         await self.coordinator.async_set_fan(WRITE_FAN[fan_mode])
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Set and authoritatively confirm the HVAC mode."""
         if hvac_mode is HVACMode.OFF:
             await self.coordinator.async_set_power(False)
         else:

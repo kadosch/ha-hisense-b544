@@ -17,11 +17,25 @@ from .models import B544State
 class B544Unit(Protocol):
     """Subset of ModbusUnit used by this device."""
 
-    async def read_discrete_inputs(self, address: int, count: int) -> list[bool]: ...
-    async def read_input_registers(self, address: int, count: int) -> list[int]: ...
-    async def write_coil(self, address: int, value: bool) -> None: ...
-    async def write_register(self, address: int, value: int) -> None: ...
-    def set_message_spacing(self, seconds: float) -> None: ...
+    async def read_discrete_inputs(self, address: int, count: int) -> list[bool]:
+        """Read discrete inputs from the unit."""
+        ...
+
+    async def read_input_registers(self, address: int, count: int) -> list[int]:
+        """Read input registers from the unit."""
+        ...
+
+    async def write_coil(self, address: int, value: bool) -> None:
+        """Write a single coil on the unit."""
+        ...
+
+    async def write_register(self, address: int, value: int) -> None:
+        """Write a single holding register on the unit."""
+        ...
+
+    def set_message_spacing(self, seconds: float) -> None:
+        """Set the minimum interval between requests to this unit."""
+        ...
 
 
 # FC02 offsets
@@ -60,6 +74,7 @@ class B544Device:
     """Minimal B544(E) device client backed by HA's shared ModbusUnit."""
 
     def __init__(self, unit: B544Unit) -> None:
+        """Initialize the device client for a Modbus unit."""
         self._unit = unit
 
     async def async_read_state(self) -> B544State:
@@ -92,18 +107,23 @@ class B544Device:
         )
 
     async def async_set_power(self, value: bool) -> None:
+        """Set the documented power coil."""
         await self._unit.write_coil(COIL_POWER, value)
 
     async def async_set_sleep(self, value: bool) -> None:
+        """Set the documented sleep coil."""
         await self._unit.write_coil(COIL_SLEEP, value)
 
     async def async_set_energy_saving(self, value: bool) -> None:
+        """Set the documented energy-saving coil."""
         await self._unit.write_coil(COIL_ENERGY_SAVING, value)
 
     async def async_set_super(self, value: bool) -> None:
+        """Set the documented Super mode coil."""
         await self._unit.write_coil(COIL_SUPER, value)
 
     async def async_set_mute(self, value: bool) -> None:
+        """Set the documented Mute mode coil."""
         await self._unit.write_coil(COIL_MUTE, value)
 
     async def async_read_discrete_input(self, address: int) -> bool:
@@ -121,6 +141,7 @@ class B544Device:
         return values[0]
 
     async def async_set_target_temperature(self, value: float) -> None:
+        """Validate and set the integer target temperature."""
         if value != int(value) or not MIN_TEMPERATURE <= value <= MAX_TEMPERATURE:
             raise ValueError(
                 f"Target temperature must be an integer from {MIN_TEMPERATURE} to {MAX_TEMPERATURE}"
@@ -128,11 +149,13 @@ class B544Device:
         await self._unit.write_register(REGISTER_TARGET_TEMPERATURE, int(value))
 
     async def async_set_mode(self, value: int) -> None:
+        """Validate and set a documented HVAC write-mode code."""
         if value not in (0, 1, 2, 3, 4):
             raise ValueError("Invalid B544 write mode")
         await self._unit.write_register(REGISTER_MODE, value)
 
     async def async_set_fan(self, value: int) -> None:
+        """Validate and set a documented fan-speed code."""
         if value not in (0, 1, 2, 3):
             raise ValueError("Invalid B544 fan mode")
         await self._unit.write_register(REGISTER_FAN, value)

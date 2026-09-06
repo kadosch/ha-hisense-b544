@@ -12,6 +12,8 @@ from .entity import HisenseB544Entity
 
 @dataclass(frozen=True, kw_only=True)
 class B544SwitchEntityDescription(SwitchEntityDescription):
+    """Describe a writable B544 mode switch."""
+
     state: Callable
     command: Callable[[object, bool], Awaitable[None]]
 
@@ -45,23 +47,30 @@ DESCRIPTIONS = (
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
+    """Set up B544 switches for a config entry."""
     async_add_entities(
         HisenseB544Switch(entry.runtime_data, entry, description) for description in DESCRIPTIONS
     )
 
 
 class HisenseB544Switch(HisenseB544Entity, SwitchEntity):
+    """Represent a documented writable B544 mode."""
+
     def __init__(self, coordinator, entry, description: B544SwitchEntityDescription) -> None:
+        """Initialize a B544 switch."""
         super().__init__(coordinator, entry)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
 
     @property
     def is_on(self):
+        """Return the switch state from the authoritative snapshot."""
         return self.entity_description.state(self.coordinator.data)
 
     async def async_turn_on(self, **kwargs) -> None:
+        """Enable and authoritatively confirm the represented mode."""
         await self.entity_description.command(self.coordinator, True)
 
     async def async_turn_off(self, **kwargs) -> None:
+        """Disable and authoritatively confirm the represented mode."""
         await self.entity_description.command(self.coordinator, False)

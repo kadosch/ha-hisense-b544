@@ -1,5 +1,6 @@
 """Repository metadata and translation consistency tests."""
 
+import ast
 import json
 from pathlib import Path
 
@@ -50,3 +51,18 @@ def test_translations_cover_every_config_flow_field():
         for step, fields in required_fields.items():
             assert set(document["config"]["step"][step]["data"]) == fields
         assert "scan_interval" in document["options"]["step"]["init"]["data"]
+
+
+def test_all_distributed_python_definitions_have_docstrings():
+    """Require docstrings even for private methods not covered by pydocstyle."""
+    missing = []
+    for path in sorted(INTEGRATION.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        missing.extend(
+            f"{path.relative_to(ROOT)}:{node.lineno}:{node.name}"
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+            and ast.get_docstring(node) is None
+        )
+
+    assert missing == []
