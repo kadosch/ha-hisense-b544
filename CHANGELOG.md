@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-09-06
+
 - Add function-specific default icons to every integration entity.
 - Present climate fan modes in the natural auto, low, medium, high order without
   changing their documented Modbus codes.
