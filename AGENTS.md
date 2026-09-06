@@ -22,6 +22,10 @@ minimal transactions, authoritative device state, and testability.
   truth. Periodic polling still uses the complete two-block refresh.
 - Do not add speculative features, entities, or undocumented register access.
 - Do not use FC0F/FC10, and do not use FC01/FC03 in v0.1.
+- Give every distributed Python module, class, function, and method a concise
+  Google-style docstring. Ruff enforces pydocstyle rules under
+  `custom_components`; test functions are exempt because their names describe
+  their behavior.
 
 ## Architecture
 

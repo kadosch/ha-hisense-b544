@@ -42,6 +42,7 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
         device: B544Device,
         scan_interval: int,
     ) -> None:
+        """Initialize polling and command coordination for one B544."""
         super().__init__(
             hass,
             logger=_LOGGER,
@@ -55,6 +56,7 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
         self._operation_lock = asyncio.Lock()
 
     async def _async_update_data(self) -> B544State:
+        """Fetch and decode the latest complete B544 state snapshot."""
         async with self._operation_lock:
             try:
                 _LOGGER.debug(

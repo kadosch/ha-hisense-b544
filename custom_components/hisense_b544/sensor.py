@@ -18,6 +18,8 @@ from .entity import HisenseB544Entity
 
 @dataclass(frozen=True, kw_only=True)
 class B544SensorEntityDescription(SensorEntityDescription):
+    """Describe a B544 numeric sensor."""
+
     value_fn: Callable
 
 
@@ -45,17 +47,22 @@ DESCRIPTIONS = (
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
+    """Set up B544 sensors for a config entry."""
     async_add_entities(
         HisenseB544Sensor(entry.runtime_data, entry, description) for description in DESCRIPTIONS
     )
 
 
 class HisenseB544Sensor(HisenseB544Entity, SensorEntity):
+    """Represent a documented B544 numeric value."""
+
     def __init__(self, coordinator, entry, description: B544SensorEntityDescription) -> None:
+        """Initialize a B544 sensor."""
         super().__init__(coordinator, entry)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
 
     @property
     def native_value(self):
+        """Return the value from the authoritative coordinator snapshot."""
         return self.entity_description.value_fn(self.coordinator.data)
