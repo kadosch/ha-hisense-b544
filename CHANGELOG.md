@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add function-specific default icons to every integration entity.
 - Present climate fan modes in the natural auto, low, medium, high order without
   changing their documented Modbus codes.
 - Create GitHub releases automatically from validated semantic-version tags.

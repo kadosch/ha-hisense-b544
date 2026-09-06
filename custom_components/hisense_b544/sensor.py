@@ -27,6 +27,7 @@ DESCRIPTIONS = (
     B544SensorEntityDescription(
         key="indoor_temperature",
         translation_key="indoor_temperature",
+        icon="mdi:home-thermometer",
         value_fn=lambda data: data.indoor_temperature,
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -35,13 +36,17 @@ DESCRIPTIONS = (
     B544SensorEntityDescription(
         key="outlet_temperature",
         translation_key="outlet_temperature",
+        icon="mdi:thermometer-lines",
         value_fn=lambda data: data.outlet_temperature,
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     B544SensorEntityDescription(
-        key="fault_code", translation_key="fault_code", value_fn=lambda data: data.fault_code
+        key="fault_code",
+        translation_key="fault_code",
+        icon="mdi:alert-circle-outline",
+        value_fn=lambda data: data.fault_code,
     ),
 )
 

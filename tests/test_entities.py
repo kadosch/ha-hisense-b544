@@ -96,6 +96,7 @@ def test_climate_has_registry_identity_and_declares_controls():
     assert entity.supported_features == (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
     )
+    assert entity.icon == "mdi:air-conditioner"
     assert entity.fan_modes == ["auto", "low", "medium", "high"]
 
 
@@ -175,3 +176,22 @@ def test_descriptions_expose_home_assistant_registry_defaults():
         assert entity.entity_category is None
 
     assert entities[1].state_class is SensorStateClass.MEASUREMENT
+
+
+def test_entity_descriptions_declare_function_specific_icons():
+    assert {description.key: description.icon for description in SWITCH_DESCRIPTIONS} == {
+        "sleep": "mdi:sleep",
+        "energy_saving": "mdi:leaf",
+        "super": "mdi:fan-speed-3",
+        "mute": "mdi:volume-mute",
+    }
+    assert {description.key: description.icon for description in BINARY_DESCRIPTIONS} == {
+        "compressor": "mdi:engine",
+        "defrost": "mdi:snowflake-melt",
+        "electric_heater": "mdi:radiator",
+    }
+    assert {description.key: description.icon for description in SENSOR_DESCRIPTIONS} == {
+        "indoor_temperature": "mdi:home-thermometer",
+        "outlet_temperature": "mdi:thermometer-lines",
+        "fault_code": "mdi:alert-circle-outline",
+    }
