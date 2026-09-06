@@ -7,6 +7,6 @@
   "documentation": "https://github.com/kadosch/ha-hisense-b544",
   "issue_tracker": "https://github.com/kadosch/ha-hisense-b544/issues",
   "codeowners": ["@kadosch"],
-  "integration_type": "device",
+  "integration_type": "hub",
   "iot_class": "local_polling"
 }

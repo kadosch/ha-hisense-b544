@@ -26,7 +26,7 @@ from .b544 import (
     IR_TARGET_TEMPERATURE,
     B544Device,
 )
-from .const import CONF_UNIT_ID, DOMAIN
+from .const import DOMAIN
 from .models import B544State
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,19 +41,21 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
         entry: ConfigEntry,
         device: B544Device,
         scan_interval: int,
+        unit_id: int,
+        operation_lock: asyncio.Lock,
     ) -> None:
         """Initialize polling and command coordination for one B544."""
         super().__init__(
             hass,
             logger=_LOGGER,
             config_entry=entry,
-            name=DOMAIN,
+            name=f"{DOMAIN}_{unit_id}",
             update_interval=timedelta(seconds=scan_interval),
             always_update=False,
         )
         self.device = device
-        self._unit_id = entry.data[CONF_UNIT_ID]
-        self._operation_lock = asyncio.Lock()
+        self._unit_id = unit_id
+        self._operation_lock = operation_lock
 
     async def _async_update_data(self) -> B544State:
         """Fetch and decode the latest complete B544 state snapshot."""

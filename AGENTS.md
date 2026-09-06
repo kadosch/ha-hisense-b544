@@ -15,8 +15,9 @@ minimal transactions, authoritative device state, and testability.
 - Do not open a serial port directly with PyModbus. Use Home Assistant's public
   API: `async_get_unit`, `async_get_temporary_unit`, `ModbusSerialParams`, and
   `ModbusUnit`. Keep `"dependencies": ["modbus"]` in the manifest.
-- One config entry is one B544/indoor unit and creates exactly one Home Assistant
-  Device. Entries with matching endpoint/link settings share HA's connection.
+- One config entry is one physical Modbus bus. Each B544/indoor unit is a config
+  subentry below that bus and creates exactly one Home Assistant Device. Do not
+  create an artificial Device Registry device for the bus.
 - Never implement optimistic state. After every FC05/FC06 write, perform a
   targeted authoritative confirmation read; the value returned by the device is
   truth. Periodic polling still uses the complete two-block refresh.
@@ -30,16 +31,18 @@ minimal transactions, authoritative device state, and testability.
 ## Architecture
 
 ```text
-ConfigEntry -> async_get_unit() -> B544Device -> Coordinator -> entities
+Bus ConfigEntry -> B544 subentries -> async_get_unit() -> Coordinator -> entities
 ```
 
 - `b544.py` owns protocol details and addresses; entities must not contain them.
 - `models.py` owns immutable, comparable `B544State` snapshots.
-- `coordinator.py` uses the per-entry configurable polling interval (default five
-  seconds) with `always_update=False`.
-- All entry entities must share `DeviceInfo` from `entity.py`.
-- Set `unit.set_message_spacing(0.03)` per entry. Do not add global spacing
-  without a reproducible communication issue.
+- `coordinator.py` uses each subentry's configurable polling interval (default
+  five seconds) with `always_update=False`.
+- All entities for one subentry must share `DeviceInfo` from `entity.py`; use the
+  stable subentry ID for entity and device identifiers.
+- Set `unit.set_message_spacing(0.03)` for each unit. All coordinators below a
+  bus share one semantic operation lock so a complete poll or write-confirm
+  sequence cannot interleave with another unit's operation.
 
 ## Critical polling invariant
 
@@ -113,26 +116,32 @@ The asymmetric mappings are mandatory: `Coil13 -> DI14` for Super and
 
 Read modes 5/6/7 map to `HVACMode.AUTO`. Do not infer `hvac_action` in AUTO.
 
-## Config flow
+## Config and subentry flows
 
-- First choose Serial RTU or Modbus TCP. Serial fields are serial device and baud
-  rate (9600/19200/38400); TCP fields are host and port (default 502). Both use
-  Unit ID (1..255), name, and optional model. Serial link settings are fixed at
-  8N1 RTU.
-- Probe with `async with async_get_temporary_unit(...)` and both block reads.
-  Communication failures must return `cannot_connect`.
-- Unique IDs are `serial:<serial-path>:<unit-id>` and
-  `tcp:<host>:<port>:<unit-id>`. Serial paths compare literally; consistently
-  use the same stable path for every entry sharing an adapter.
+- The parent flow first chooses Serial RTU or Modbus TCP. Serial bus fields are
+  bus name, serial device, and baud rate (9600/19200/38400); TCP bus fields are
+  bus name, host, and port (default 502). Serial link settings are fixed at 8N1
+  RTU.
+- A B544 subentry stores Unit ID (1..255), device name, optional model, and its
+  5..3600-second polling interval. Initial bus onboarding must continue directly
+  to the first device subentry flow.
+- Probe every new or reconfigured B544 with
+  `async with async_get_temporary_unit(...)` and both block reads. Communication
+  failures must return `cannot_connect`. Do not probe a bus reconfiguration:
+  changing serial link settings while the old connection is held would conflict
+  with HA's connection manager. Save the bus and let its devices reconnect after
+  reload.
+- Bus unique IDs are `serial:<serial-path>` and `tcp:<host>:<port>`. Subentry
+  unique IDs are the Unit ID within that parent. Serial paths compare literally;
+  use one consistent stable path per adapter.
 - Convert polling failures to `UpdateFailed`; command failures must mark the
   coordinator unavailable and raise `HomeAssistantError`. Do not reload an
   entry on a drop.
-- Serialize a complete write-confirm sequence against periodic polling with the
-  coordinator operation lock. Do not rely on request-level transport locking
-  for a multi-request semantic operation.
-- The polling interval is `scan_interval`, accepts 5..3600 seconds, defaults to
-  5, and may be changed through the options flow. Option changes reload the
-  config entry.
+- Serialize complete polls and write-confirm sequences across every coordinator
+  on the bus. Do not rely on request-level transport locking for a multi-request
+  semantic operation.
+- Parent or subentry updates add, remove, or reconfigure runtime resources by
+  reloading the parent config entry through its update listener.
 
 ## v0.1 scope
 

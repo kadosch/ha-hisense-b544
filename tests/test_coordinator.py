@@ -37,12 +37,12 @@ def snapshot() -> B544State:
     )
 
 
-def coordinator_with(device):
+def coordinator_with(device, operation_lock=None):
     coordinator = object.__new__(HisenseB544Coordinator)
     coordinator.device = device
     coordinator._unit_id = 1
     coordinator.data = snapshot()
-    coordinator._operation_lock = asyncio.Lock()
+    coordinator._operation_lock = operation_lock or asyncio.Lock()
     updates = []
 
     def publish(data):
@@ -56,10 +56,11 @@ def coordinator_with(device):
 
 def test_coordinator_initializes_with_home_assistant_runtime_contract():
     hass = SimpleNamespace()
-    entry = SimpleNamespace(data={"unit_id": 2}, async_on_unload=MagicMock())
+    entry = SimpleNamespace(async_on_unload=MagicMock())
     device = SimpleNamespace()
+    operation_lock = asyncio.Lock()
 
-    coordinator = HisenseB544Coordinator(hass, entry, device, 15)
+    coordinator = HisenseB544Coordinator(hass, entry, device, 15, 2, operation_lock)
 
     assert coordinator.hass is hass
     assert coordinator.config_entry is entry
@@ -69,6 +70,7 @@ def test_coordinator_initializes_with_home_assistant_runtime_contract():
     assert coordinator.update_interval == timedelta(seconds=15)
     assert coordinator.always_update is False
     assert coordinator._unit_id == 2
+    assert coordinator._operation_lock is operation_lock
     entry.async_on_unload.assert_called_once()
 
 
@@ -236,8 +238,8 @@ async def test_successful_command_recovers_coordinator_after_a_command_failure()
         async_read_discrete_input=AsyncMock(return_value=True),
     )
     hass = SimpleNamespace()
-    entry = SimpleNamespace(data={"unit_id": 1}, async_on_unload=MagicMock())
-    coordinator = HisenseB544Coordinator(hass, entry, device, 5)
+    entry = SimpleNamespace(async_on_unload=MagicMock())
+    coordinator = HisenseB544Coordinator(hass, entry, device, 5, 1, asyncio.Lock())
     coordinator.data = snapshot()
 
     with pytest.raises(HomeAssistantError):
@@ -278,3 +280,38 @@ async def test_polling_waits_for_complete_write_confirmation_operation():
 
     device.async_read_discrete_input.assert_awaited_once_with(0)
     device.async_read_state.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_shared_bus_lock_serializes_operations_across_coordinators():
+    shared_lock = asyncio.Lock()
+    write_started = asyncio.Event()
+    release_write = asyncio.Event()
+
+    async def set_power(value):
+        assert value is True
+        write_started.set()
+        await release_write.wait()
+
+    first, _ = coordinator_with(
+        SimpleNamespace(
+            async_set_power=set_power,
+            async_read_discrete_input=AsyncMock(return_value=True),
+        ),
+        shared_lock,
+    )
+    second_device = SimpleNamespace(async_read_state=AsyncMock(return_value=snapshot()))
+    second, _ = coordinator_with(second_device, shared_lock)
+    second._unit_id = 2
+
+    command_task = asyncio.create_task(first.async_set_power(True))
+    await write_started.wait()
+    poll_task = asyncio.create_task(second._async_update_data())
+    await asyncio.sleep(0)
+
+    second_device.async_read_state.assert_not_awaited()
+    release_write.set()
+    await command_task
+    await poll_task
+
+    second_device.async_read_state.assert_awaited_once_with()

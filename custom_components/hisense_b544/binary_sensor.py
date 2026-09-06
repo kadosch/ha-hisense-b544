@@ -33,21 +33,28 @@ DESCRIPTIONS = (
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    """Set up B544 binary sensors for a config entry."""
-    async_add_entities(
-        HisenseB544BinarySensor(entry.runtime_data, entry, description)
-        for description in DESCRIPTIONS
-    )
+    """Set up B544 binary sensors for every device subentry."""
+    for subentry_id, coordinator in entry.runtime_data.coordinators.items():
+        subentry = entry.subentries[subentry_id]
+        async_add_entities(
+            (
+                HisenseB544BinarySensor(coordinator, subentry, description)
+                for description in DESCRIPTIONS
+            ),
+            config_subentry_id=subentry_id,
+        )
 
 
 class HisenseB544BinarySensor(HisenseB544Entity, BinarySensorEntity):
     """Represent a documented B544 binary status."""
 
-    def __init__(self, coordinator, entry, description: B544BinarySensorEntityDescription) -> None:
+    def __init__(
+        self, coordinator, subentry, description: B544BinarySensorEntityDescription
+    ) -> None:
         """Initialize a B544 binary sensor."""
-        super().__init__(coordinator, entry)
+        super().__init__(coordinator, subentry)
         self.entity_description = description
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{subentry.subentry_id}_{description.key}"
 
     @property
     def is_on(self):

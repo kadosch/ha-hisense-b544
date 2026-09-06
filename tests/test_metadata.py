@@ -22,6 +22,7 @@ def test_manifest_and_hacs_metadata_are_publishable():
     assert manifest["domain"] == DOMAIN
     assert manifest["config_flow"] is True
     assert manifest["dependencies"] == ["modbus"]
+    assert manifest["integration_type"] == "hub"
     assert manifest["codeowners"] == ["@kadosch"]
     assert manifest["documentation"].startswith("https://github.com/")
     assert "OWNER" not in manifest["documentation"]
@@ -30,17 +31,12 @@ def test_manifest_and_hacs_metadata_are_publishable():
 
 
 def test_translations_cover_every_config_flow_field():
+    """Require complete bus and B544 subentry translations in every language."""
     required_fields = {
-        "serial": {
-            "device",
-            "baudrate",
-            "scan_interval",
-            "unit_id",
-            "name",
-            "model",
-        },
-        "tcp": {"host", "port", "scan_interval", "unit_id", "name", "model"},
+        "serial": {"device", "baudrate", "name"},
+        "tcp": {"host", "port", "name"},
     }
+    device_fields = {"scan_interval", "unit_id", "name", "model"}
 
     for path in (
         INTEGRATION / "strings.json",
@@ -50,7 +46,10 @@ def test_translations_cover_every_config_flow_field():
         document = load_json(path)
         for step, fields in required_fields.items():
             assert set(document["config"]["step"][step]["data"]) == fields
-        assert "scan_interval" in document["options"]["step"]["init"]["data"]
+        for step in ("user", "reconfigure"):
+            assert set(document["config_subentries"]["b544"]["step"][step]["data"]) == (
+                device_fields
+            )
 
 
 def test_all_distributed_python_definitions_have_docstrings():

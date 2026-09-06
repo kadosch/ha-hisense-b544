@@ -1,5 +1,6 @@
 """Shared entity support."""
 
+from homeassistant.config_entries import ConfigSubentry
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -12,13 +13,13 @@ class HisenseB544Entity(CoordinatorEntity[HisenseB544Coordinator]):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: HisenseB544Coordinator, entry) -> None:
+    def __init__(self, coordinator: HisenseB544Coordinator, subentry: ConfigSubentry) -> None:
         """Initialize a B544 entity and its shared device information."""
         super().__init__(coordinator)
-        self._entry = entry
+        self._subentry = subentry
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.data[CONF_NAME],
+            identifiers={(DOMAIN, subentry.subentry_id)},
+            name=subentry.data[CONF_NAME],
             manufacturer="Hisense",
-            model=entry.data.get(CONF_MODEL) or "B544(E)",
+            model=subentry.data.get(CONF_MODEL) or "B544(E)",
         )

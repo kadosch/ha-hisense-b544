@@ -38,17 +38,33 @@ def snapshot() -> B544State:
 
 
 @pytest.mark.asyncio
-async def test_all_platforms_create_exactly_one_device_and_eleven_entities():
-    coordinator = SimpleNamespace(data=snapshot(), last_update_success=True)
+async def test_all_platforms_create_eleven_entities_per_device_subentry():
+    subentries = {
+        "device-a": SimpleNamespace(
+            subentry_id="device-a",
+            data={CONF_NAME: "Unit A", CONF_MODEL: "ADT52UX4RCL8"},
+        ),
+        "device-b": SimpleNamespace(
+            subentry_id="device-b",
+            data={CONF_NAME: "Unit B", CONF_MODEL: ""},
+        ),
+    }
     entry = SimpleNamespace(
-        entry_id="entry-id",
-        data={CONF_NAME: "Unit A", CONF_MODEL: "ADT52UX4RCL8"},
-        runtime_data=coordinator,
+        subentries=subentries,
+        runtime_data=SimpleNamespace(
+            coordinators={
+                subentry_id: SimpleNamespace(data=snapshot(), last_update_success=True)
+                for subentry_id in subentries
+            }
+        ),
     )
     entities = []
+    registrations = []
 
-    def add_entities(new_entities) -> None:
-        entities.extend(new_entities)
+    def add_entities(new_entities, *, config_subentry_id) -> None:
+        added = list(new_entities)
+        entities.extend(added)
+        registrations.extend((entity, config_subentry_id) for entity in added)
 
     for setup in (
         climate.async_setup_entry,
@@ -59,15 +75,24 @@ async def test_all_platforms_create_exactly_one_device_and_eleven_entities():
         await setup(None, entry, add_entities)
 
     assert Counter(type(entity) for entity in entities) == {
-        HisenseB544Climate: 1,
-        HisenseB544Switch: 4,
-        HisenseB544BinarySensor: 3,
-        HisenseB544Sensor: 3,
+        HisenseB544Climate: 2,
+        HisenseB544Switch: 8,
+        HisenseB544BinarySensor: 6,
+        HisenseB544Sensor: 6,
     }
-    assert len({entity.unique_id for entity in entities}) == 11
+    assert len(entities) == 22
+    assert len({entity.unique_id for entity in entities}) == 22
     assert all(entity.available for entity in entities)
     assert {frozenset(entity.device_info["identifiers"]) for entity in entities} == {
-        frozenset({(DOMAIN, "entry-id")})
+        frozenset({(DOMAIN, "device-a")}),
+        frozenset({(DOMAIN, "device-b")}),
     }
-    assert {entity.device_info["name"] for entity in entities} == {"Unit A"}
-    assert {entity.device_info["model"] for entity in entities} == {"ADT52UX4RCL8"}
+    assert {entity.device_info["name"] for entity in entities} == {"Unit A", "Unit B"}
+    assert {entity.device_info["model"] for entity in entities} == {
+        "ADT52UX4RCL8",
+        "B544(E)",
+    }
+    assert all(
+        entity.unique_id.startswith(config_subentry_id)
+        for entity, config_subentry_id in registrations
+    )

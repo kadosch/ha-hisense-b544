@@ -83,10 +83,12 @@ def test_climate_state_maps_power_mode_fan_and_temperatures():
 
 def test_climate_has_registry_identity_and_declares_controls():
     coord = coordinator(state())
-    entry = SimpleNamespace(entry_id="entry-id", data={"name": "Unit A", "model": "ADT52UX4RCL8"})
-    entity = HisenseB544Climate(coord, entry)
+    subentry = SimpleNamespace(
+        subentry_id="device-id", data={"name": "Unit A", "model": "ADT52UX4RCL8"}
+    )
+    entity = HisenseB544Climate(coord, subentry)
 
-    assert entity.unique_id == "entry-id_climate"
+    assert entity.unique_id == "device-id_climate"
     assert entity.supported_features == (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
     )
@@ -150,11 +152,11 @@ def test_binary_and_numeric_sensors_expose_only_documented_values():
 
 def test_descriptions_expose_home_assistant_registry_defaults():
     coord = coordinator(state())
-    entry = SimpleNamespace(entry_id="entry-id", data={"name": "ADT52", "model": "B544"})
+    subentry = SimpleNamespace(subentry_id="device-id", data={"name": "ADT52", "model": "B544"})
     entities = [
-        HisenseB544BinarySensor(coord, entry, BINARY_DESCRIPTIONS[0]),
-        HisenseB544Sensor(coord, entry, SENSOR_DESCRIPTIONS[0]),
-        HisenseB544Switch(coord, entry, SWITCH_DESCRIPTIONS[0]),
+        HisenseB544BinarySensor(coord, subentry, BINARY_DESCRIPTIONS[0]),
+        HisenseB544Sensor(coord, subentry, SENSOR_DESCRIPTIONS[0]),
+        HisenseB544Switch(coord, subentry, SWITCH_DESCRIPTIONS[0]),
     ]
 
     for entity in entities:
