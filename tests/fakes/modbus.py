@@ -34,10 +34,14 @@ class FakeModbusUnit:
         *,
         discrete_inputs: list[bool] | None = None,
         input_registers: list[int] | None = None,
+        readback_delay_reads: int = 0,
     ) -> None:
         """Initialize register state and an operation journal."""
         self.discrete_inputs = discrete_inputs or [False] * 16
         self.input_registers = input_registers or [0] * 15
+        self.readback_delay_reads = readback_delay_reads
+        self._pending_discrete_inputs: dict[int, tuple[int, bool]] = {}
+        self._pending_input_registers: dict[int, tuple[int, int]] = {}
         self.calls: list[tuple[Any, ...]] = []
         self.spacing: float | None = None
         self.read_error: Exception | None = None
@@ -53,14 +57,64 @@ class FakeModbusUnit:
         """Return a slice of authoritative discrete-input state."""
         self.calls.append(("read_discrete_inputs", address, count))
         self._raise_read_error()
-        return self.discrete_inputs[address : address + count]
+        values = self.discrete_inputs[address : address + count]
+        self._advance_pending_readback(
+            self._pending_discrete_inputs,
+            self.discrete_inputs,
+            address,
+            count,
+            index_offset=0,
+        )
+        return values
 
     async def read_input_registers(self, address: int, count: int) -> list[int]:
         """Return a slice of authoritative input-register state."""
         self.calls.append(("read_input_registers", address, count))
         self._raise_read_error()
         start = address - 1
-        return self.input_registers[start : start + count]
+        values = self.input_registers[start : start + count]
+        self._advance_pending_readback(
+            self._pending_input_registers,
+            self.input_registers,
+            address,
+            count,
+            index_offset=1,
+        )
+        return values
+
+    def _advance_pending_readback(
+        self,
+        pending: dict[int, tuple[int, Any]],
+        values: list[Any],
+        address: int,
+        count: int,
+        *,
+        index_offset: int,
+    ) -> None:
+        """Advance delayed state propagation after returning a stale read."""
+        for pending_address, (remaining, value) in tuple(pending.items()):
+            if not address <= pending_address < address + count:
+                continue
+            if remaining == 1:
+                values[pending_address - index_offset] = value
+                del pending[pending_address]
+            else:
+                pending[pending_address] = (remaining - 1, value)
+
+    def _set_readback(
+        self,
+        pending: dict[int, tuple[int, Any]],
+        values: list[Any],
+        address: int,
+        value: Any,
+        *,
+        index_offset: int,
+    ) -> None:
+        """Apply a write immediately or after configured stale reads."""
+        if self.readback_delay_reads:
+            pending[address] = (self.readback_delay_reads, value)
+        else:
+            values[address - index_offset] = value
 
     async def write_coil(self, address: int, value: bool) -> None:
         """Journal one FC05 write and apply its documented readback mapping."""
@@ -72,7 +126,13 @@ class FakeModbusUnit:
             COIL_SUPER: DI_SUPER,
             COIL_MUTE: DI_MUTE,
         }[address]
-        self.discrete_inputs[read_address] = value
+        self._set_readback(
+            self._pending_discrete_inputs,
+            self.discrete_inputs,
+            read_address,
+            value,
+            index_offset=0,
+        )
 
     async def write_register(self, address: int, value: int) -> None:
         """Journal one FC06 write and apply its documented readback mapping."""
@@ -83,7 +143,13 @@ class FakeModbusUnit:
             REGISTER_FAN: IR_FAN,
         }[address]
         read_value = 5 if address == REGISTER_MODE and value == 4 else value
-        self.input_registers[read_address - 1] = read_value
+        self._set_readback(
+            self._pending_input_registers,
+            self.input_registers,
+            read_address,
+            read_value,
+            index_offset=1,
+        )
 
     def set_message_spacing(self, seconds: float) -> None:
         """Record the configured per-unit message spacing."""

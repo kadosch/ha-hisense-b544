@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import timedelta
@@ -26,10 +26,14 @@ from .b544 import (
     IR_TARGET_TEMPERATURE,
     B544Device,
 )
-from .const import DOMAIN
+from .const import COMMAND_CONFIRMATION_INTERVAL, COMMAND_CONFIRMATION_TIMEOUT, DOMAIN
 from .models import B544State
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class B544ConfirmationError(HomeAssistantError):
+    """Report a command whose authoritative state did not converge in time."""
 
 
 class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
@@ -78,16 +82,67 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
             )
             return state
 
-    async def _async_confirm_discrete_input(self, address: int, field: str) -> None:
-        """Read one DI and publish its real value. Caller holds the operation lock."""
-        value = await self.device.async_read_discrete_input(address)
+    async def _async_wait_for_confirmation[T](
+        self,
+        read: Callable[[], Awaitable[T]],
+        matches: Callable[[T], bool],
+        description: str,
+    ) -> T:
+        """Retry one targeted read until it confirms the command or times out."""
+        deadline = asyncio.get_running_loop().time() + COMMAND_CONFIRMATION_TIMEOUT
+        attempt = 0
+        while True:
+            attempt += 1
+            value = await read()
+            if matches(value):
+                _LOGGER.debug(
+                    "Confirmed B544 unit %s %s after %s targeted read(s): %r",
+                    self._unit_id,
+                    description,
+                    attempt,
+                    value,
+                )
+                return value
+
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                raise B544ConfirmationError(
+                    f"B544 did not confirm {description} within "
+                    f"{COMMAND_CONFIRMATION_TIMEOUT:g} seconds; last value was {value!r}"
+                )
+            _LOGGER.debug(
+                "B544 unit %s has not confirmed %s after targeted read %s: %r",
+                self._unit_id,
+                description,
+                attempt,
+                value,
+            )
+            await asyncio.sleep(min(COMMAND_CONFIRMATION_INTERVAL, remaining))
+
+    async def _async_confirm_discrete_input(self, address: int, field: str, expected: bool) -> None:
+        """Wait for one DI to match and publish it under the operation lock."""
+        value = await self._async_wait_for_confirmation(
+            lambda: self.device.async_read_discrete_input(address),
+            lambda current: current is expected,
+            f"{field}={expected!r}",
+        )
         raw_di = list(self.data.raw_di)
         raw_di[address] = value
         self.async_set_updated_data(replace(self.data, **{field: value}, raw_di=tuple(raw_di)))
 
-    async def _async_confirm_input_register(self, address: int, field: str) -> None:
-        """Read one IR and publish its real value. Caller holds the operation lock."""
-        value = await self.device.async_read_input_register(address)
+    async def _async_confirm_input_register(
+        self,
+        address: int,
+        field: str,
+        expected: int | frozenset[int],
+    ) -> None:
+        """Wait for one IR to match and publish it under the operation lock."""
+        expected_values = expected if isinstance(expected, frozenset) else frozenset((expected,))
+        value = await self._async_wait_for_confirmation(
+            lambda: self.device.async_read_input_register(address),
+            expected_values.__contains__,
+            f"{field} in {sorted(expected_values)!r}",
+        )
         raw_ir = list(self.data.raw_ir)
         raw_ir[address - 1] = value
         self.async_set_updated_data(replace(self.data, **{field: value}, raw_ir=tuple(raw_ir)))
@@ -108,43 +163,45 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
         """Write and confirm power under one operation lock."""
         async with self._async_command("set power"):
             await self.device.async_set_power(value)
-            await self._async_confirm_discrete_input(DI_POWER, "power")
+            await self._async_confirm_discrete_input(DI_POWER, "power", value)
 
     async def async_set_sleep(self, value: bool) -> None:
         """Write and confirm sleep under one operation lock."""
         async with self._async_command("set sleep"):
             await self.device.async_set_sleep(value)
-            await self._async_confirm_discrete_input(DI_SLEEP, "sleep")
+            await self._async_confirm_discrete_input(DI_SLEEP, "sleep", value)
 
     async def async_set_energy_saving(self, value: bool) -> None:
         """Write and confirm energy saving under one operation lock."""
         async with self._async_command("set energy saving"):
             await self.device.async_set_energy_saving(value)
-            await self._async_confirm_discrete_input(DI_ENERGY_SAVING, "energy_saving")
+            await self._async_confirm_discrete_input(DI_ENERGY_SAVING, "energy_saving", value)
 
     async def async_set_super(self, value: bool) -> None:
         """Write and confirm super under one operation lock."""
         async with self._async_command("set super"):
             await self.device.async_set_super(value)
-            await self._async_confirm_discrete_input(DI_SUPER, "super_mode")
+            await self._async_confirm_discrete_input(DI_SUPER, "super_mode", value)
 
     async def async_set_mute(self, value: bool) -> None:
         """Write and confirm mute under one operation lock."""
         async with self._async_command("set mute"):
             await self.device.async_set_mute(value)
-            await self._async_confirm_discrete_input(DI_MUTE, "mute")
+            await self._async_confirm_discrete_input(DI_MUTE, "mute", value)
 
     async def async_set_target_temperature(self, value: float) -> None:
         """Write and confirm target temperature under one operation lock."""
         async with self._async_command("set target temperature"):
             await self.device.async_set_target_temperature(value)
-            await self._async_confirm_input_register(IR_TARGET_TEMPERATURE, "target_temperature")
+            await self._async_confirm_input_register(
+                IR_TARGET_TEMPERATURE, "target_temperature", int(value)
+            )
 
     async def async_set_fan(self, fan_code: int) -> None:
         """Write and confirm fan mode under one operation lock."""
         async with self._async_command("set fan"):
             await self.device.async_set_fan(fan_code)
-            await self._async_confirm_input_register(IR_FAN, "fan_code")
+            await self._async_confirm_input_register(IR_FAN, "fan_code", fan_code)
 
     async def async_set_mode(self, mode_code: int) -> None:
         """Write mode, power on when needed, and confirm atomically."""
@@ -152,5 +209,6 @@ class HisenseB544Coordinator(DataUpdateCoordinator[B544State]):
             await self.device.async_set_mode(mode_code)
             if not self.data.power:
                 await self.device.async_set_power(True)
-                await self._async_confirm_discrete_input(DI_POWER, "power")
-            await self._async_confirm_input_register(IR_MODE, "mode_code")
+                await self._async_confirm_discrete_input(DI_POWER, "power", True)
+            expected_modes = frozenset((5, 6, 7)) if mode_code == 4 else mode_code
+            await self._async_confirm_input_register(IR_MODE, "mode_code", expected_modes)

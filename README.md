@@ -8,7 +8,7 @@ This is an independent community integration and is not affiliated with or endor
 
 The read map has been validated with a B544 on an `ADT52UX4RCL8` indoor unit. Write commands follow the Hisense B544(E) manual and must be hardware-validated before relying on them in production.
 
-Each physical Modbus bus is configured once, and every B544 on it is added as a device below that bus. Each periodic device polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by an immediate targeted read of the affected authoritative DI or IR; the integration never uses optimistic state.
+Each physical Modbus bus is configured once, and every B544 on it is added as a device below that bus. Each periodic device polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by targeted reads of the affected authoritative DI or IR; the integration never uses optimistic state. Because B544 readback can lag behind a successful write, stale values are retried every 200 ms for up to three seconds and are never published as command confirmation.
 
 ## Requirements
 
@@ -44,7 +44,7 @@ The bus is a Home Assistant config entry, not an artificial Device Registry devi
 
 The polling interval is configured independently for each B544, defaults to 5 seconds, and accepts 5 to 3600 seconds. Reconfigure the individual B544 device to change it. Reconfigure the parent bus to change its endpoint or link settings. Bus changes are applied on reload; if the new settings are wrong, its devices become unavailable and recover after the settings are corrected.
 
-For `N` B544 devices whose polling cycles happen at the same cadence, the bus performs `2 × N` periodic read transactions per cycle. A command adds one FC05/FC06 write and only the targeted DI/IR confirmation reads required by that command.
+For `N` B544 devices whose polling cycles happen at the same cadence, the bus performs `2 × N` periodic read transactions per cycle. A command adds one FC05/FC06 write and only the targeted DI/IR confirmation reads required by that command. The first matching read completes confirmation; additional targeted reads occur only while the B544 still reports its previous state.
 
 ## Entities
 

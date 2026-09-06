@@ -6,6 +6,8 @@
   changing their documented Modbus codes.
 - Create GitHub releases automatically from validated semantic-version tags.
 - Reuse the existing test, HACS, and Hassfest workflows as release gates.
+- Retry delayed authoritative DI/IR readback after writes without publishing
+  stale intermediate values or performing a complete refresh.
 
 ## 0.2.2 - 2026-09-06
 
