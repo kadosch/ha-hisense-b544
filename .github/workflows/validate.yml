@@ -11,15 +11,15 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  hacs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: hacs/action@main
         with:
-          python-version: "3.14"
-      - run: python -m venv .venv
-      - run: .venv/bin/pip install '.[test]'
-      - run: ./scripts/validate
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          category: integration
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: home-assistant/actions/hassfest@master
