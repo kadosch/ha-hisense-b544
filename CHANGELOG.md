@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1 - Unreleased
+## 0.2.1 - 2026-09-06
 
 - Fix Home Assistant translation metadata required for B544 config subentries.
 - Sort manifest metadata according to the current Hassfest requirement.
