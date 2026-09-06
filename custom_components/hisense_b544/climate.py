@@ -41,6 +41,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
 class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
     """Reflect B544 climate state, never predicting write results."""
 
+    _attr_icon = "mdi:air-conditioner"
     _attr_name = None
     _attr_hvac_modes = list(WRITE_MODE) + [HVACMode.OFF]
     _attr_fan_modes = FAN_MODES
