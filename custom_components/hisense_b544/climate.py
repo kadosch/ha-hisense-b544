@@ -28,8 +28,13 @@ WRITE_FAN = {value: key for key, value in READ_FAN.items()}
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    """Add the device's primary climate entity."""
-    async_add_entities([HisenseB544Climate(entry.runtime_data, entry)])
+    """Add one primary climate entity for every B544 subentry."""
+    for subentry_id, coordinator in entry.runtime_data.coordinators.items():
+        subentry = entry.subentries[subentry_id]
+        async_add_entities(
+            [HisenseB544Climate(coordinator, subentry)],
+            config_subentry_id=subentry_id,
+        )
 
 
 class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
@@ -46,10 +51,10 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
     )
 
-    def __init__(self, coordinator, entry) -> None:
+    def __init__(self, coordinator, subentry) -> None:
         """Initialize the primary B544 climate entity."""
-        super().__init__(coordinator, entry)
-        self._attr_unique_id = f"{entry.entry_id}_climate"
+        super().__init__(coordinator, subentry)
+        self._attr_unique_id = f"{subentry.subentry_id}_climate"
 
     @property
     def hvac_mode(self):
