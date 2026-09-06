@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - Unreleased
+
+- Fix Home Assistant translation metadata required for B544 config subentries.
+- Sort manifest metadata according to the current Hassfest requirement.
+
 ## 0.2.0 - 2026-09-06
 
 - Initial local Modbus integration for Hisense B544(E), using direct serial RTU
