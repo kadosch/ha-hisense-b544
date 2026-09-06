@@ -4,14 +4,17 @@ import asyncio
 import logging
 from datetime import timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from modbus_connection import ModbusConnectionError
 
-from custom_components.hisense_b544.coordinator import HisenseB544Coordinator
+from custom_components.hisense_b544.coordinator import (
+    B544ConfirmationError,
+    HisenseB544Coordinator,
+)
 from custom_components.hisense_b544.models import B544State
 
 
@@ -104,8 +107,8 @@ async def test_targeted_confirmation_updates_only_the_authoritative_field():
         )
     )
 
-    await coordinator._async_confirm_discrete_input(14, "super_mode")
-    await coordinator._async_confirm_input_register(8, "fan_code")
+    await coordinator._async_confirm_discrete_input(14, "super_mode", True)
+    await coordinator._async_confirm_input_register(8, "fan_code", 3)
 
     first, second = updates
     assert first.super_mode is True
@@ -115,7 +118,8 @@ async def test_targeted_confirmation_updates_only_the_authoritative_field():
 
 
 @pytest.mark.asyncio
-async def test_mode_write_and_confirm_are_one_ordered_operation():
+@pytest.mark.parametrize("read_code", [5, 6, 7])
+async def test_mode_write_and_confirm_are_one_ordered_operation(read_code):
     calls = []
 
     async def set_mode(value):
@@ -130,7 +134,7 @@ async def test_mode_write_and_confirm_are_one_ordered_operation():
 
     async def read_ir(address):
         calls.append(("read_ir", address))
-        return 5
+        return read_code
 
     coordinator, _ = coordinator_with(
         SimpleNamespace(
@@ -145,7 +149,7 @@ async def test_mode_write_and_confirm_are_one_ordered_operation():
 
     assert calls == [("set_mode", 4), ("set_power", True), ("read_di", 0), ("read_ir", 7)]
     assert coordinator.data.power is True
-    assert coordinator.data.mode_code == 5
+    assert coordinator.data.mode_code == read_code
 
 
 @pytest.mark.asyncio
@@ -205,18 +209,44 @@ async def test_each_command_uses_its_targeted_authoritative_confirmation():
 
 
 @pytest.mark.asyncio
-async def test_command_never_publishes_the_requested_value_optimistically():
+async def test_command_retries_stale_readback_without_publishing_it():
+    """A stale readback must not revert state while confirmation is pending."""
     device = SimpleNamespace(
         async_set_sleep=AsyncMock(),
-        async_read_discrete_input=AsyncMock(return_value=True),
+        async_read_discrete_input=AsyncMock(side_effect=[False, False, True]),
     )
-    coordinator, _ = coordinator_with(device)
+    coordinator, updates = coordinator_with(device)
 
-    await coordinator.async_set_sleep(False)
+    with patch(
+        "custom_components.hisense_b544.coordinator.asyncio.sleep", new=AsyncMock()
+    ) as sleep:
+        await coordinator.async_set_sleep(True)
 
-    device.async_set_sleep.assert_awaited_once_with(False)
+    device.async_set_sleep.assert_awaited_once_with(True)
+    assert device.async_read_discrete_input.await_count == 3
+    assert [args[0][0] for args in sleep.await_args_list] == [0.2, 0.2]
+    assert len(updates) == 1
     assert coordinator.data.sleep is True
     assert coordinator.data.raw_di[3] is True
+
+
+@pytest.mark.asyncio
+async def test_unconfirmed_command_fails_without_marking_transport_unavailable():
+    """A responsive device that retains old state is not a transport failure."""
+    device = SimpleNamespace(
+        async_set_power=AsyncMock(),
+        async_read_discrete_input=AsyncMock(return_value=False),
+    )
+    coordinator, updates = coordinator_with(device)
+
+    with (
+        patch("custom_components.hisense_b544.coordinator.COMMAND_CONFIRMATION_TIMEOUT", 0),
+        pytest.raises(B544ConfirmationError, match="did not confirm power=True"),
+    ):
+        await coordinator.async_set_power(True)
+
+    assert updates == []
+    coordinator.async_set_update_error.assert_not_called()
 
 
 @pytest.mark.asyncio

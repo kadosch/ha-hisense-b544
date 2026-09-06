@@ -18,9 +18,10 @@ minimal transactions, authoritative device state, and testability.
 - One config entry is one physical Modbus bus. Each B544/indoor unit is a config
   subentry below that bus and creates exactly one Home Assistant Device. Do not
   create an artificial Device Registry device for the bus.
-- Never implement optimistic state. After every FC05/FC06 write, perform a
-  targeted authoritative confirmation read; the value returned by the device is
-  truth. Periodic polling still uses the complete two-block refresh.
+- Never implement optimistic state. After every FC05/FC06 write, retry only the
+  targeted authoritative read every 200 ms for up to three seconds; publish
+  only a value that confirms the command. Periodic polling still uses the
+  complete two-block refresh.
 - Do not add speculative features, entities, or undocumented register access.
 - Do not use FC0F/FC10, and do not use FC01/FC03 in v0.1.
 - Give every distributed Python module, class, function, and method a concise
@@ -65,8 +66,11 @@ Never poll per entity. FC04 offsets start at IR1: `array[0]` is IR1 and
 
 After a write, do not run the complete polling refresh. Confirm only the real
 read-state location: Power/Sleep/Energy Saving/Super/Mute use their respective
-DI, while setpoint/mode/fan use IR2/IR7/IR8. Update the frozen snapshot with
-the returned value using the coordinator; never use the requested value.
+DI, while setpoint/mode/fan use IR2/IR7/IR8. A stale intermediate value must not
+be published; retry until it matches or the confirmation deadline expires.
+Read modes 5/6/7 all confirm an AUTO write of 4. A confirmation deadline is not
+a transport failure and must not make the coordinator unavailable, while an
+actual Modbus error must. Never use the requested value as entity state.
 
 ## Modbus map
 
