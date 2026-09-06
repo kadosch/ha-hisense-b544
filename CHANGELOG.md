@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Create GitHub releases automatically from validated semantic-version tags.
+- Reuse the existing test, HACS, and Hassfest workflows as release gates.
+
 ## 0.2.2 - 2026-09-06
 
 - Fix config-flow forms that failed frontend schema serialization after choosing
