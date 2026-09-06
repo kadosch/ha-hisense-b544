@@ -36,6 +36,13 @@
         }
       }
     },
+    "error": {
+      "invalid_name": "Introduce un nombre de bus no vacío",
+      "invalid_device": "Introduce una ruta de dispositivo serie no vacía",
+      "invalid_baudrate": "Selecciona una velocidad en baudios compatible",
+      "invalid_host": "Introduce un host de gateway no vacío",
+      "invalid_port": "El puerto debe estar entre 1 y 65535"
+    },
     "abort": {
       "already_configured": "Este endpoint Modbus ya está configurado"
     }
@@ -70,10 +77,20 @@
       },
       "error": {
         "cannot_connect": "No se puede conectar al B544",
-        "invalid_unit_id": "El ID de unidad debe estar entre 1 y 255"
+        "invalid_unit_id": "El ID de unidad debe estar entre 1 y 255",
+        "invalid_name": "Introduce un nombre de dispositivo no vacío",
+        "invalid_scan_interval": "El intervalo de sondeo debe estar entre 5 y 3600 segundos"
       },
       "abort": {
         "already_configured": "Este ID de unidad ya está configurado en el bus"
+      }
+    }
+  },
+  "selector": {
+    "transport": {
+      "options": {
+        "serial": "Serie RTU",
+        "tcp": "Modbus TCP"
       }
     }
   },

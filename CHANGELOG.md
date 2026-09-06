@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Fix config-flow forms that failed frontend schema serialization after choosing
+  Serial RTU or Modbus TCP.
+- Use native Home Assistant selectors for all user-facing fields and normalize
+  their frontend values before persisting bus or device data.
+- Exercise complete Serial onboarding and both transport forms through Home
+  Assistant's authenticated HTTP config-flow API.
+
 ## 0.2.1 - 2026-09-06
 
 - Fix Home Assistant translation metadata required for B544 config subentries.
