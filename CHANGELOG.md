@@ -9,6 +9,8 @@
 - A bus-wide operation lock serializes complete polling and write-confirm
   sequences across Unit IDs.
 - Independently configurable 5-to-3600-second polling interval per B544.
+- Migration of pre-release single-device entries while preserving existing
+  Device Registry and Entity Registry identifiers.
 - Climate, mode switches, status binary sensors, and temperature/fault sensors.
 - Immediate targeted DI/IR confirmation after every write, serialized against
   periodic polling and without optimistic state.

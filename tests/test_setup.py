@@ -7,20 +7,135 @@ import pytest
 
 from custom_components.hisense_b544 import (
     _async_update_listener,
+    async_migrate_entry,
     async_setup_entry,
     async_unload_entry,
 )
 from custom_components.hisense_b544.const import (
     CONF_BAUDRATE,
     CONF_DEVICE,
+    CONF_HOST,
+    CONF_MODEL,
     CONF_NAME,
+    CONF_PORT,
     CONF_SCAN_INTERVAL,
+    CONF_TRANSPORT,
     CONF_UNIT_ID,
     MESSAGE_SPACING,
     PLATFORMS,
     SUBENTRY_TYPE_B544,
     TRANSPORT_SERIAL,
+    TRANSPORT_TCP,
 )
+
+
+def migration_hass(duplicate=None):
+    """Return mocked config-entry storage services for migration tests."""
+    return SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_add_subentry=MagicMock(),
+            async_entry_for_domain_unique_id=MagicMock(return_value=duplicate),
+            async_update_entry=MagicMock(),
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_migration_converts_legacy_serial_device_and_preserves_registry_ids():
+    entry = SimpleNamespace(
+        version=1,
+        entry_id="legacy-entry",
+        domain="hisense_b544",
+        unique_id="serial:/dev/serial/by-id/b544:7",
+        data={
+            CONF_TRANSPORT: TRANSPORT_SERIAL,
+            CONF_DEVICE: "/dev/serial/by-id/b544",
+            CONF_BAUDRATE: 19200,
+            CONF_UNIT_ID: 7,
+            CONF_NAME: "Legacy unit",
+            CONF_MODEL: "ADT52UX4RCL8",
+            CONF_SCAN_INTERVAL: 5,
+        },
+        options={CONF_SCAN_INTERVAL: 30},
+    )
+    hass = migration_hass()
+
+    assert await async_migrate_entry(hass, entry) is True
+
+    migrated_subentry = hass.config_entries.async_add_subentry.call_args.args[1]
+    assert migrated_subentry.subentry_id == "legacy-entry"
+    assert migrated_subentry.unique_id == "7"
+    assert dict(migrated_subentry.data) == {
+        CONF_UNIT_ID: 7,
+        CONF_NAME: "Legacy unit",
+        CONF_MODEL: "ADT52UX4RCL8",
+        CONF_SCAN_INTERVAL: 30,
+    }
+    hass.config_entries.async_update_entry.assert_called_once_with(
+        entry,
+        data={
+            CONF_TRANSPORT: TRANSPORT_SERIAL,
+            CONF_DEVICE: "/dev/serial/by-id/b544",
+            CONF_BAUDRATE: 19200,
+            CONF_NAME: "Legacy unit bus",
+        },
+        options={},
+        title="Legacy unit bus",
+        unique_id="serial:/dev/serial/by-id/b544",
+        version=2,
+    )
+
+
+@pytest.mark.asyncio
+async def test_migration_handles_tcp_and_retains_identity_on_bus_collision():
+    duplicate = SimpleNamespace(entry_id="existing-bus")
+    entry = SimpleNamespace(
+        version=1,
+        entry_id="legacy-tcp",
+        domain="hisense_b544",
+        unique_id="tcp:gateway.local:502:2",
+        data={
+            CONF_TRANSPORT: TRANSPORT_TCP,
+            CONF_HOST: "gateway.local",
+            CONF_PORT: 502,
+            CONF_UNIT_ID: 2,
+            CONF_NAME: "Legacy TCP unit",
+        },
+        options={},
+    )
+    hass = migration_hass(duplicate)
+
+    assert await async_migrate_entry(hass, entry) is True
+
+    migrated_subentry = hass.config_entries.async_add_subentry.call_args.args[1]
+    assert migrated_subentry.data[CONF_MODEL] == ""
+    assert migrated_subentry.data[CONF_SCAN_INTERVAL] == 5
+    assert hass.config_entries.async_update_entry.call_args.kwargs["data"] == {
+        CONF_TRANSPORT: TRANSPORT_TCP,
+        CONF_HOST: "gateway.local",
+        CONF_PORT: 502,
+        CONF_NAME: "Legacy TCP unit bus",
+    }
+    assert (
+        hass.config_entries.async_update_entry.call_args.kwargs["unique_id"]
+        == "tcp:gateway.local:502:2"
+    )
+
+
+@pytest.mark.asyncio
+async def test_migration_upgrades_early_bus_shape_and_rejects_future_version():
+    hass = migration_hass()
+    early_bus = SimpleNamespace(version=1, data={}, options={})
+    assert await async_migrate_entry(hass, early_bus) is True
+    hass.config_entries.async_update_entry.assert_called_once_with(early_bus, version=2)
+
+    hass.config_entries.async_update_entry.reset_mock()
+    current_bus = SimpleNamespace(version=2, data={}, options={})
+    assert await async_migrate_entry(hass, current_bus) is True
+    hass.config_entries.async_update_entry.assert_not_called()
+
+    future_entry = SimpleNamespace(version=3, data={}, options={})
+    assert await async_migrate_entry(hass, future_entry) is False
 
 
 @pytest.mark.asyncio
@@ -111,7 +226,7 @@ async def test_unload_forwards_all_platforms():
 
 
 @pytest.mark.asyncio
-async def test_option_update_reloads_its_entry():
+async def test_entry_update_reloads_its_bus():
     hass = SimpleNamespace(config_entries=SimpleNamespace(async_reload=AsyncMock()))
     entry = SimpleNamespace(entry_id="entry-id")
     await _async_update_listener(hass, entry)

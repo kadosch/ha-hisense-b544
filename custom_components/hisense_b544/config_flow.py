@@ -109,7 +109,7 @@ async def _async_probe(hass: HomeAssistant, bus_data: Mapping[str, Any], unit_id
 class HisenseB544ConfigFlow(ConfigFlow, domain=DOMAIN):
     """Create and reconfigure a shared B544 Modbus bus."""
 
-    VERSION = 1
+    VERSION = 2
 
     @classmethod
     def async_get_supported_subentry_types(
