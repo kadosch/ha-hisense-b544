@@ -13,7 +13,11 @@ from custom_components.hisense_b544.binary_sensor import (
 from custom_components.hisense_b544.binary_sensor import (
     HisenseB544BinarySensor,
 )
-from custom_components.hisense_b544.climate import HisenseB544Climate
+from custom_components.hisense_b544.climate import (
+    READ_FAN,
+    WRITE_FAN,
+    HisenseB544Climate,
+)
 from custom_components.hisense_b544.models import B544State
 from custom_components.hisense_b544.sensor import DESCRIPTIONS as SENSOR_DESCRIPTIONS
 from custom_components.hisense_b544.sensor import HisenseB544Sensor
@@ -92,6 +96,12 @@ def test_climate_has_registry_identity_and_declares_controls():
     assert entity.supported_features == (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
     )
+    assert entity.fan_modes == ["auto", "low", "medium", "high"]
+
+
+def test_climate_fan_ui_order_does_not_change_modbus_codes():
+    assert READ_FAN == {0: "auto", 1: "high", 2: "low", 3: "medium"}
+    assert WRITE_FAN == {"auto": 0, "high": 1, "low": 2, "medium": 3}
 
 
 @pytest.mark.asyncio

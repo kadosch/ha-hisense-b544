@@ -25,6 +25,7 @@ WRITE_MODE = {
 }
 READ_FAN = {0: "auto", 1: "high", 2: "low", 3: "medium"}
 WRITE_FAN = {value: key for key, value in READ_FAN.items()}
+FAN_MODES = ["auto", "low", "medium", "high"]
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
@@ -42,7 +43,7 @@ class HisenseB544Climate(HisenseB544Entity, ClimateEntity):
 
     _attr_name = None
     _attr_hvac_modes = list(WRITE_MODE) + [HVACMode.OFF]
-    _attr_fan_modes = list(WRITE_FAN)
+    _attr_fan_modes = FAN_MODES
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = 18
     _attr_max_temp = 32

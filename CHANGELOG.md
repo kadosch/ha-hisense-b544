@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Present climate fan modes in the natural auto, low, medium, high order without
+  changing their documented Modbus codes.
 - Create GitHub releases automatically from validated semantic-version tags.
 - Reuse the existing test, HACS, and Hassfest workflows as release gates.
 
