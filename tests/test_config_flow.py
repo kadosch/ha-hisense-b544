@@ -30,6 +30,10 @@ from custom_components.hisense_b544.const import (
     TRANSPORT_SERIAL,
     TRANSPORT_TCP,
 )
+from custom_components.hisense_b544.dependencies import (
+    HisenseB544Dependencies,
+    set_dependencies,
+)
 
 
 class TemporaryUnit:
@@ -103,9 +107,10 @@ def config_flow(entry_for_unique_id=None):
     """Return a parent config flow with Home Assistant helpers mocked."""
     current = HisenseB544ConfigFlow()
     current.hass = SimpleNamespace(
+        data={},
         config_entries=SimpleNamespace(
             async_entry_for_domain_unique_id=MagicMock(return_value=entry_for_unique_id)
-        )
+        ),
     )
     current.async_set_unique_id = AsyncMock()
     current._abort_if_unique_id_configured = MagicMock()
@@ -118,7 +123,7 @@ def subentry_flow(entry, *, source=SOURCE_USER, subentry_id=None):
     """Return a B544 subentry flow attached to a parent entry."""
     current = HisenseB544DeviceSubentryFlow()
     current.hass = SimpleNamespace(
-        config_entries=SimpleNamespace(async_get_known_entry=MagicMock(return_value=entry))
+        data={}, config_entries=SimpleNamespace(async_get_known_entry=MagicMock(return_value=entry))
     )
     current.handler = (entry.entry_id, SUBENTRY_TYPE_B544)
     current.context = {"source": source}
@@ -261,21 +266,17 @@ async def test_valid_device_probe_reads_state_and_creates_unique_subentry():
     entry = make_bus_entry()
     current = subentry_flow(entry)
     temporary = TemporaryUnit()
+    provider = SimpleNamespace(temporary_unit=MagicMock(return_value=temporary))
+    set_dependencies(current.hass, HisenseB544Dependencies(modbus=provider))
 
-    with (
-        patch(
-            "custom_components.hisense_b544.config_flow.async_get_temporary_unit",
-            return_value=temporary,
-        ) as get_temporary,
-        patch(
-            "custom_components.hisense_b544.config_flow.B544Device.async_read_state",
-            new=AsyncMock(),
-        ) as read_state,
-    ):
+    with patch(
+        "custom_components.hisense_b544.config_flow.B544Device.async_read_state",
+        new=AsyncMock(),
+    ) as read_state:
         assert await current.async_step_user(device_input()) == {"type": "create_entry"}
 
-    get_temporary.assert_called_once()
-    assert get_temporary.call_args.args[2] == 1
+    provider.temporary_unit.assert_called_once()
+    assert provider.temporary_unit.call_args.args[2] == 1
     read_state.assert_awaited_once_with()
     current.async_create_entry.assert_called_once_with(
         title="Unit A", data=device_input(), unique_id="1"

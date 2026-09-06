@@ -6,7 +6,6 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.components.modbus import async_get_temporary_unit
 from homeassistant.config_entries import (
     SOURCE_USER,
     ConfigEntry,
@@ -48,6 +47,7 @@ from .const import (
     TRANSPORT_TCP,
     TRANSPORTS,
 )
+from .dependencies import get_dependencies
 from .transport import bus_unique_id_from_data, params_from_data
 
 _NON_EMPTY_STRING = vol.All(str, str.strip, vol.Length(min=1))
@@ -102,7 +102,9 @@ def _device_schema(defaults: Mapping[str, Any]) -> vol.Schema:
 
 async def _async_probe(hass: HomeAssistant, bus_data: Mapping[str, Any], unit_id: int) -> None:
     """Read both authoritative blocks from a temporary Modbus unit."""
-    async with async_get_temporary_unit(hass, params_from_data(bus_data), unit_id) as unit:
+    async with get_dependencies(hass).modbus.temporary_unit(
+        hass, params_from_data(bus_data), unit_id
+    ) as unit:
         await B544Device(unit).async_read_state()
 
 

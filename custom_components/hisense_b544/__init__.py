@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from types import MappingProxyType
 
-from homeassistant.components.modbus import async_get_unit
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
 
@@ -27,6 +26,7 @@ from .const import (
     TRANSPORT_SERIAL,
 )
 from .coordinator import HisenseB544Coordinator
+from .dependencies import get_dependencies
 from .models import HisenseB544Runtime
 from .transport import bus_unique_id_from_data, params_from_data
 
@@ -93,12 +93,13 @@ async def async_migrate_entry(hass: HomeAssistant, entry: HisenseB544ConfigEntry
 async def async_setup_entry(hass: HomeAssistant, entry: HisenseB544ConfigEntry) -> bool:
     """Set up one Modbus bus and all its B544 device subentries."""
     params = params_from_data(entry.data)
+    modbus = get_dependencies(hass).modbus
     operation_lock = asyncio.Lock()
     coordinators: dict[str, HisenseB544Coordinator] = {}
 
     for subentry in entry.get_subentries_of_type(SUBENTRY_TYPE_B544):
         unit_id = subentry.data[CONF_UNIT_ID]
-        unit = async_get_unit(hass, entry, params, unit_id)
+        unit = modbus.get_unit(hass, entry, params, unit_id)
         unit.set_message_spacing(MESSAGE_SPACING)
         coordinator = HisenseB544Coordinator(
             hass,

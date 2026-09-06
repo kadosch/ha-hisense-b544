@@ -15,16 +15,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-      - run: >-
-          pip install
-          homeassistant==2026.9.1
-          'modbus-connection[tmodbus]==4.10.0'
-          pymodbus==3.13.1
-          tmodbus==0.6.2
-          pytest
-          pytest-asyncio
-          coverage
-          ruff
+      - run: pip install '.[test]'
       - run: ruff check .
       - run: ruff format --check .
       - run: coverage run -m pytest

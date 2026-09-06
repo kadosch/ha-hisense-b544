@@ -14,7 +14,7 @@ Each physical Modbus bus is configured once, and every B544 on it is added as a 
 
 - B544(E) configured for Modbus and with a unique Unit ID.
 - RS-485 wired A+ to A+ and B- to B-; follow Hisense termination/topology guidance.
-- Home Assistant 2026.9.1 or newer.
+- Home Assistant 2026.9.0 or newer.
 - No other Modbus master may access the same serial port. Remove only the old B544 YAML hub before enabling this integration; unrelated Modbus ports can remain configured.
 
 For direct serial RTU, the default B544 baud rate is 9600; 19200 and 38400 baud are also supported, with 8N1 RTU. Prefer a stable `/dev/serial/by-id/...` path: serial aliases are treated as distinct endpoints by the shared Modbus connection manager.
@@ -58,3 +58,17 @@ Swing, electric-heater control, `hvac_action`, fault-code translations, automati
 ## Troubleshooting
 
 Enable debug logging for `custom_components.hisense_b544` when diagnosing communications. Check B544 DIP switches for Modbus protocol, baud rate, and address; verify A+/B- polarity and ensure every B544 on a bus has a different Unit ID. Only one Modbus master may own a serial interface. For TCP, confirm that the gateway forwards Modbus unit IDs and that its host and port are reachable from Home Assistant.
+
+## Development and testing
+
+Install the reproducible test environment and run all checks with:
+
+```bash
+pip install '.[test]'
+ruff check .
+ruff format --check .
+coverage run -m pytest -q
+coverage report
+```
+
+The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows, config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.
