@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 - Unreleased
+## 0.2.0 - 2026-09-06
 
 - Initial local Modbus integration for Hisense B544(E), using direct serial RTU
   or Modbus TCP through an RTU gateway.

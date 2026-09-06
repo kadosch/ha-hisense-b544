@@ -2,6 +2,7 @@
 
 import ast
 import json
+import tomllib
 from pathlib import Path
 
 from custom_components.hisense_b544.const import DOMAIN
@@ -16,8 +17,11 @@ def load_json(path: Path) -> dict:
 
 
 def test_manifest_and_hacs_metadata_are_publishable():
+    """Require release metadata accepted by Home Assistant and HACS."""
     manifest = load_json(INTEGRATION / "manifest.json")
     hacs = load_json(ROOT / "hacs.json")
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert manifest["domain"] == DOMAIN
     assert manifest["config_flow"] is True
@@ -27,6 +31,8 @@ def test_manifest_and_hacs_metadata_are_publishable():
     assert manifest["documentation"].startswith("https://github.com/")
     assert "OWNER" not in manifest["documentation"]
     assert manifest["issue_tracker"].endswith("/issues")
+    assert manifest["version"] == project["project"]["version"]
+    assert f"## {manifest['version']} - " in changelog
     assert hacs == {"name": "Hisense B544", "homeassistant": "2026.9.0"}
 
 
