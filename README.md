@@ -74,4 +74,4 @@ Hassfest, and the HACS Action. Docker and a GitHub token are required because
 the HACS Action validates public repository metadata. It infers the repository
 from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
 
-The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows, config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.
+The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows—including frontend schema serialization and submission through Home Assistant's authenticated HTTP API—config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.

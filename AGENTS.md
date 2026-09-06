@@ -187,6 +187,9 @@ CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 90%). Add
 tests for changes to addresses, grouped reads, write order, or config flow.
 Keep focused unit tests for protocol edge cases and use the in-memory HA suite
 for config flows, registries, entity states, services, reloads, and recovery.
+Every user-facing config or subentry form must use frontend-serializable Home
+Assistant selectors and have an HTTP API test that serializes and submits the
+form; flow-manager-only tests do not verify the frontend contract.
 Keep executable files under `custom_components/hisense_b544/`, preserve
 `hacs.json`, translations, and the neutral `brand/icon.png`, and do not use
 Hisense commercial logos without permission.

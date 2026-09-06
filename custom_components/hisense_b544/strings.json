@@ -36,6 +36,13 @@
         }
       }
     },
+    "error": {
+      "invalid_name": "Enter a non-empty bus name",
+      "invalid_device": "Enter a non-empty serial device path",
+      "invalid_baudrate": "Select a supported baud rate",
+      "invalid_host": "Enter a non-empty gateway host",
+      "invalid_port": "Port must be between 1 and 65535"
+    },
     "abort": {
       "already_configured": "This Modbus endpoint is already configured"
     }
@@ -70,10 +77,20 @@
       },
       "error": {
         "cannot_connect": "Cannot connect to the B544",
-        "invalid_unit_id": "Unit ID must be between 1 and 255"
+        "invalid_unit_id": "Unit ID must be between 1 and 255",
+        "invalid_name": "Enter a non-empty device name",
+        "invalid_scan_interval": "Polling interval must be between 5 and 3600 seconds"
       },
       "abort": {
         "already_configured": "This Unit ID is already configured on the bus"
+      }
+    }
+  },
+  "selector": {
+    "transport": {
+      "options": {
+        "serial": "Serial RTU",
+        "tcp": "Modbus TCP"
       }
     }
   },
