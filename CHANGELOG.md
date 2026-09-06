@@ -15,3 +15,7 @@
 - Immediate targeted DI/IR confirmation after every write, serialized against
   periodic polling and without optimistic state.
 - HACS, hassfest, ruff, pytest, and coverage validation.
+- Dependency injection at the external Modbus-unit boundary, keeping production
+  access on Home Assistant's public shared connection API.
+- In-memory Home Assistant integration tests covering config flows, subentries,
+  registries, entity states, services, reloads, and communication recovery.
