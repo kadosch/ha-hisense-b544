@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from custom_components.hisense_b544.config_flow import (
     HisenseB544ConfigFlow,
     HisenseB544DeviceSubentryFlow,
+    _integer,
 )
 from custom_components.hisense_b544.const import (
     CONF_BAUDRATE,
@@ -101,6 +102,22 @@ def make_bus_entry(*subentries, transport=TRANSPORT_SERIAL):
         subentries=MappingProxyType(by_id),
         get_subentries_of_type=MagicMock(return_value=list(subentries)),
     )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, None),
+        ("invalid", None),
+        (None, None),
+        (1.5, None),
+        ("19200", 19200),
+        (2.0, 2),
+    ],
+)
+def test_integer_form_normalization_rejects_lossy_or_invalid_values(value, expected):
+    """Integer normalization must accept frontend values without truncation."""
+    assert _integer(value) == expected
 
 
 def config_flow(entry_for_unique_id=None):
@@ -195,25 +212,49 @@ async def test_duplicate_bus_is_aborted():
 
 @pytest.mark.asyncio
 async def test_bus_forms_validate_transport_specific_fields():
-    """Bus forms reject blank endpoints and unsupported link settings."""
+    """Bus forms and flow semantics reject invalid connection settings."""
     current = config_flow()
     await current.async_step_serial()
     serial_schema = current.async_show_form.call_args.kwargs["data_schema"]
     assert serial_schema({})[CONF_NAME] == DEFAULT_BUS_NAME
-    for field, value in (
-        (CONF_DEVICE, " "),
-        (CONF_NAME, ""),
-        (CONF_BAUDRATE, 115200),
-    ):
-        with pytest.raises(vol.Invalid):
-            serial_schema(serial_bus_input(**{field: value}))
+    assert serial_schema(serial_bus_input(**{CONF_BAUDRATE: "19200"}))[CONF_BAUDRATE] == "19200"
+    with pytest.raises(vol.Invalid):
+        serial_schema(serial_bus_input(**{CONF_BAUDRATE: "115200"}))
+
+    assert await current.async_step_serial(serial_bus_input(**{CONF_DEVICE: " "})) == {
+        "type": "form"
+    }
+    assert current.async_show_form.call_args.kwargs["errors"] == {CONF_DEVICE: "invalid_device"}
 
     await current.async_step_tcp()
     tcp_schema = current.async_show_form.call_args.kwargs["data_schema"]
     assert tcp_schema(tcp_bus_input())[CONF_HOST] == "Gateway.LOCAL"
-    for field, value in ((CONF_HOST, " "), (CONF_PORT, 0), (CONF_PORT, 65536)):
+    for field, value in ((CONF_PORT, 0), (CONF_PORT, 65536)):
         with pytest.raises(vol.Invalid):
             tcp_schema(tcp_bus_input(**{field: value}))
+
+    assert await current.async_step_tcp(tcp_bus_input(**{CONF_HOST: " "})) == {"type": "form"}
+    assert current.async_show_form.call_args.kwargs["errors"] == {CONF_HOST: "invalid_host"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("step", "data", "field", "error"),
+    [
+        (
+            "async_step_serial",
+            serial_bus_input(**{CONF_BAUDRATE: 115200}),
+            CONF_BAUDRATE,
+            "invalid_baudrate",
+        ),
+        ("async_step_tcp", tcp_bus_input(**{CONF_PORT: 0}), CONF_PORT, "invalid_port"),
+    ],
+)
+async def test_bus_flow_defensively_validates_values_without_schema(step, data, field, error):
+    """Direct flow calls must not bypass semantic bus validation."""
+    current = config_flow()
+    assert await getattr(current, step)(data) == {"type": "form"}
+    assert current.async_show_form.call_args.kwargs["errors"] == {field: error}
 
 
 def test_config_flow_exposes_b544_device_subentries():
@@ -252,12 +293,14 @@ async def test_device_form_validates_all_device_specific_fields():
     for field, value in (
         (CONF_UNIT_ID, 0),
         (CONF_UNIT_ID, 256),
-        (CONF_NAME, " "),
         (CONF_SCAN_INTERVAL, MIN_SCAN_INTERVAL - 1),
         (CONF_SCAN_INTERVAL, MAX_SCAN_INTERVAL + 1),
     ):
         with pytest.raises(vol.Invalid):
             schema(device_input(**{field: value}))
+
+    assert await current.async_step_user(device_input(**{CONF_NAME: " "})) == {"type": "form"}
+    assert current.async_show_form.call_args.kwargs["errors"] == {CONF_NAME: "invalid_name"}
 
 
 @pytest.mark.asyncio
@@ -312,6 +355,20 @@ async def test_invalid_unit_id_is_rejected_before_probe_when_called_directly():
     with patch("custom_components.hisense_b544.config_flow._async_probe") as probe:
         assert await current.async_step_user(device_input(**{CONF_UNIT_ID: 0})) == {"type": "form"}
     assert current.async_show_form.call_args.kwargs["errors"] == {CONF_UNIT_ID: "invalid_unit_id"}
+    probe.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_invalid_scan_interval_is_rejected_before_probe_when_called_directly():
+    """Semantic validation must reject an invalid direct polling interval."""
+    current = subentry_flow(make_bus_entry())
+    with patch("custom_components.hisense_b544.config_flow._async_probe") as probe:
+        assert await current.async_step_user(device_input(**{CONF_SCAN_INTERVAL: 4})) == {
+            "type": "form"
+        }
+    assert current.async_show_form.call_args.kwargs["errors"] == {
+        CONF_SCAN_INTERVAL: "invalid_scan_interval"
+    }
     probe.assert_not_called()
 
 
@@ -397,6 +454,21 @@ async def test_empty_bus_reconfigure_skips_probe_and_updates():
     with patch("custom_components.hisense_b544.config_flow._async_probe") as probe:
         assert await current.async_step_reconfigure(serial_bus_input()) == {"type": "abort"}
     probe.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_invalid_bus_reconfigure_keeps_form_open():
+    """Invalid reconfiguration data must not update the existing bus."""
+    entry = make_bus_entry()
+    current = config_flow()
+    current._get_reconfigure_entry = MagicMock(return_value=entry)
+    current.async_update_and_abort = MagicMock(return_value={"type": "abort"})
+
+    assert await current.async_step_reconfigure(serial_bus_input(**{CONF_NAME: " "})) == {
+        "type": "form"
+    }
+    assert current.async_show_form.call_args.kwargs["errors"] == {CONF_NAME: "invalid_name"}
+    current.async_update_and_abort.assert_not_called()
 
 
 @pytest.mark.asyncio
