@@ -1,7 +1,7 @@
 {
   "domain": "hisense_b544",
   "name": "Hisense B544",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "config_flow": true,
   "dependencies": ["modbus"],
   "documentation": "https://github.com/kadosch/ha-hisense-b544",
