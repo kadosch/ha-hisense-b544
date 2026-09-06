@@ -5,6 +5,8 @@ import json
 import tomllib
 from pathlib import Path
 
+import yaml
+
 from custom_components.hisense_b544.const import DOMAIN
 
 ROOT = Path(__file__).parents[1]
@@ -14,6 +16,14 @@ INTEGRATION = ROOT / "custom_components" / DOMAIN
 def load_json(path: Path) -> dict:
     """Load one repository JSON document."""
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_workflow(name: str) -> dict:
+    """Load a GitHub Actions workflow without YAML boolean coercion."""
+    return yaml.load(
+        (ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
 
 
 def test_manifest_and_hacs_metadata_are_publishable():
@@ -87,3 +97,40 @@ def test_all_distributed_python_definitions_have_docstrings():
         )
 
     assert missing == []
+
+
+def test_release_workflow_reuses_ci_before_publishing():
+    """Require semantic-version tags to pass every gate before publication."""
+    tests = load_workflow("tests.yml")
+    validation = load_workflow("validate.yml")
+    release = load_workflow("release.yml")
+
+    for workflow in (tests, validation):
+        assert "workflow_call" in workflow["on"]
+        assert workflow["on"]["push"] == {"branches": ["**"]}
+
+    test_steps = tests["jobs"]["test"]["steps"]
+    actionlint = next(step for step in test_steps if step.get("uses", "").startswith("docker://"))
+    assert actionlint == {
+        "uses": "docker://rhysd/actionlint:1.7.12",
+        "with": {"args": "-color"},
+    }
+
+    assert release["on"] == {"push": {"tags": ["v[0-9]+.[0-9]+.[0-9]+"]}}
+    assert release["permissions"] == {"contents": "read"}
+    assert release["jobs"]["tests"] == {"uses": "./.github/workflows/tests.yml"}
+    assert release["jobs"]["validation"] == {"uses": "./.github/workflows/validate.yml"}
+
+    publish = release["jobs"]["release"]
+    assert publish["needs"] == ["tests", "validation"]
+    assert publish["permissions"] == {"contents": "write"}
+    steps = {step.get("name"): step for step in publish["steps"]}
+    version_check = steps["Verify release version"]["run"]
+    assert "manifest.json" in version_check
+    assert "pyproject.toml" in version_check
+    assert "GITHUB_REF_NAME" in version_check
+    create = steps["Create GitHub release"]
+    assert create["env"] == {"GH_TOKEN": "${{ github.token }}"}
+    assert "gh release create" in create["run"]
+    assert "--verify-tag" in create["run"]
+    assert "--generate-notes" in create["run"]

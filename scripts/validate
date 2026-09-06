@@ -18,6 +18,11 @@ fi
 .venv/bin/coverage report
 
 docker run --rm --pull=always \
+  -v "$repository_root:/repo" \
+  --workdir /repo \
+  rhysd/actionlint:1.7.12 -color
+
+docker run --rm --pull=always \
   -v "$repository_root:/github/workspace" \
   ghcr.io/home-assistant/hassfest
 

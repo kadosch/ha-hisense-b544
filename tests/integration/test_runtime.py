@@ -22,6 +22,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
     ATTR_ENTITY_ID,
+    ATTR_ICON,
     SERVICE_TURN_ON,
     STATE_OFF,
     STATE_ON,
@@ -192,6 +193,24 @@ async def test_two_subentries_create_devices_entities_and_authoritative_states(
     )
     assert hass.states.get(entity_id(hass, SENSOR_DOMAIN, "device-a_fault_code")).state == "7"
 
+    expected_icons = {
+        (CLIMATE_DOMAIN, "device-a_climate"): "mdi:air-conditioner",
+        (SWITCH_DOMAIN, "device-a_sleep"): "mdi:sleep",
+        (SWITCH_DOMAIN, "device-a_energy_saving"): "mdi:leaf",
+        (SWITCH_DOMAIN, "device-a_super"): "mdi:fan-speed-3",
+        (SWITCH_DOMAIN, "device-a_mute"): "mdi:volume-mute",
+        (BINARY_SENSOR_DOMAIN, "device-a_compressor"): "mdi:engine",
+        (BINARY_SENSOR_DOMAIN, "device-a_defrost"): "mdi:snowflake-melt",
+        (BINARY_SENSOR_DOMAIN, "device-a_electric_heater"): "mdi:radiator",
+        (SENSOR_DOMAIN, "device-a_indoor_temperature"): "mdi:home-thermometer",
+        (SENSOR_DOMAIN, "device-a_outlet_temperature"): "mdi:thermometer-lines",
+        (SENSOR_DOMAIN, "device-a_fault_code"): "mdi:alert-circle-outline",
+    }
+    for (platform, unique_id), expected_icon in expected_icons.items():
+        entity_state = hass.states.get(entity_id(hass, platform, unique_id))
+        assert entity_state is not None
+        assert entity_state.attributes[ATTR_ICON] == expected_icon
+
     assert [call[3] for call in provider.persistent_calls] == [1, 2]
     assert all(unit.spacing == MESSAGE_SPACING for unit in provider.units.values())
     assert all(
@@ -206,6 +225,7 @@ async def test_two_subentries_create_devices_entities_and_authoritative_states(
 
 async def test_real_ha_services_execute_write_confirmation_pipeline(
     hass: HomeAssistant,
+    monkeypatch,
 ) -> None:
     """HA climate and switch services should publish confirmed device state."""
     _entry, provider = await setup_bus(hass)
@@ -213,6 +233,10 @@ async def test_real_ha_services_execute_write_confirmation_pipeline(
     climate_id = entity_id(hass, CLIMATE_DOMAIN, "device-a_climate")
     super_id = entity_id(hass, SWITCH_DOMAIN, "device-a_super")
 
+    monkeypatch.setattr(
+        "custom_components.hisense_b544.coordinator.COMMAND_CONFIRMATION_INTERVAL", 0
+    )
+    unit.readback_delay_reads = 2
     unit.calls.clear()
     await hass.services.async_call(
         CLIMATE_DOMAIN,
@@ -223,9 +247,12 @@ async def test_real_ha_services_execute_write_confirmation_pipeline(
     assert unit.calls == [
         ("write_register", 0, 25),
         ("read_input_registers", 2, 1),
+        ("read_input_registers", 2, 1),
+        ("read_input_registers", 2, 1),
     ]
     assert hass.states.get(climate_id).attributes["temperature"] == 25
 
+    unit.readback_delay_reads = 0
     unit.calls.clear()
     await hass.services.async_call(
         CLIMATE_DOMAIN,
@@ -239,6 +266,7 @@ async def test_real_ha_services_execute_write_confirmation_pipeline(
     ]
     assert hass.states.get(climate_id).attributes["fan_mode"] == "low"
 
+    unit.readback_delay_reads = 2
     unit.calls.clear()
     await hass.services.async_call(
         SWITCH_DOMAIN,
@@ -248,6 +276,8 @@ async def test_real_ha_services_execute_write_confirmation_pipeline(
     )
     assert unit.calls == [
         ("write_coil", 13, True),
+        ("read_discrete_inputs", 14, 1),
+        ("read_discrete_inputs", 14, 1),
         ("read_discrete_inputs", 14, 1),
     ]
     assert hass.states.get(super_id).state == STATE_ON

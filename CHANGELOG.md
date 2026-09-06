@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+## 0.3.0 - 2026-09-06
+
+- Add function-specific default icons to every integration entity.
+- Present climate fan modes in the natural auto, low, medium, high order without
+  changing their documented Modbus codes.
+- Create GitHub releases automatically from validated semantic-version tags.
+- Reuse the existing test, HACS, and Hassfest workflows as release gates.
+- Retry delayed authoritative DI/IR readback after writes without publishing
+  stale intermediate values or performing a complete refresh.
+
 ## 0.2.2 - 2026-09-06
 
 - Fix config-flow forms that failed frontend schema serialization after choosing

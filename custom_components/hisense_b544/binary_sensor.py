@@ -19,14 +19,21 @@ class B544BinarySensorEntityDescription(BinarySensorEntityDescription):
 
 DESCRIPTIONS = (
     B544BinarySensorEntityDescription(
-        key="compressor", translation_key="compressor", value_fn=lambda data: data.compressor
+        key="compressor",
+        translation_key="compressor",
+        icon="mdi:engine",
+        value_fn=lambda data: data.compressor,
     ),
     B544BinarySensorEntityDescription(
-        key="defrost", translation_key="defrost", value_fn=lambda data: data.defrost
+        key="defrost",
+        translation_key="defrost",
+        icon="mdi:snowflake-melt",
+        value_fn=lambda data: data.defrost,
     ),
     B544BinarySensorEntityDescription(
         key="electric_heater",
         translation_key="electric_heater",
+        icon="mdi:radiator",
         value_fn=lambda data: data.electric_heater,
     ),
 )

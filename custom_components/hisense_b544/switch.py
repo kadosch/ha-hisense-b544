@@ -22,24 +22,28 @@ DESCRIPTIONS = (
     B544SwitchEntityDescription(
         key="sleep",
         translation_key="sleep",
+        icon="mdi:sleep",
         state=lambda data: data.sleep,
         command=lambda coordinator, value: coordinator.async_set_sleep(value),
     ),
     B544SwitchEntityDescription(
         key="energy_saving",
         translation_key="energy_saving",
+        icon="mdi:leaf",
         state=lambda data: data.energy_saving,
         command=lambda coordinator, value: coordinator.async_set_energy_saving(value),
     ),
     B544SwitchEntityDescription(
         key="super",
         translation_key="super",
+        icon="mdi:fan-speed-3",
         state=lambda data: data.super_mode,
         command=lambda coordinator, value: coordinator.async_set_super(value),
     ),
     B544SwitchEntityDescription(
         key="mute",
         translation_key="mute",
+        icon="mdi:volume-mute",
         state=lambda data: data.mute,
         command=lambda coordinator, value: coordinator.async_set_mute(value),
     ),

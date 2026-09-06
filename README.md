@@ -8,7 +8,7 @@ This is an independent community integration and is not affiliated with or endor
 
 The read map has been validated with a B544 on an `ADT52UX4RCL8` indoor unit. Write commands follow the Hisense B544(E) manual and must be hardware-validated before relying on them in production.
 
-Each physical Modbus bus is configured once, and every B544 on it is added as a device below that bus. Each periodic device polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by an immediate targeted read of the affected authoritative DI or IR; the integration never uses optimistic state.
+Each physical Modbus bus is configured once, and every B544 on it is added as a device below that bus. Each periodic device polling cycle uses exactly two transactions: `FC02(0, 16)` and `FC04(1, 15)`. Commands use only FC05 or FC06, followed by targeted reads of the affected authoritative DI or IR; the integration never uses optimistic state. Because B544 readback can lag behind a successful write, stale values are retried every 200 ms for up to three seconds and are never published as command confirmation.
 
 ## Requirements
 
@@ -44,7 +44,7 @@ The bus is a Home Assistant config entry, not an artificial Device Registry devi
 
 The polling interval is configured independently for each B544, defaults to 5 seconds, and accepts 5 to 3600 seconds. Reconfigure the individual B544 device to change it. Reconfigure the parent bus to change its endpoint or link settings. Bus changes are applied on reload; if the new settings are wrong, its devices become unavailable and recover after the settings are corrected.
 
-For `N` B544 devices whose polling cycles happen at the same cadence, the bus performs `2 × N` periodic read transactions per cycle. A command adds one FC05/FC06 write and only the targeted DI/IR confirmation reads required by that command.
+For `N` B544 devices whose polling cycles happen at the same cadence, the bus performs `2 × N` periodic read transactions per cycle. A command adds one FC05/FC06 write and only the targeted DI/IR confirmation reads required by that command. The first matching read completes confirmation; additional targeted reads occur only while the B544 still reports its previous state.
 
 ## Entities
 
@@ -70,8 +70,25 @@ GITHUB_TOKEN=... ./scripts/validate
 ```
 
 The preflight runs the same checks as GitHub Actions: ruff, pytest, coverage,
-Hassfest, and the HACS Action. Docker and a GitHub token are required because
-the HACS Action validates public repository metadata. It infers the repository
-from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
+actionlint, Hassfest, and the HACS Action. Docker and a GitHub token are required
+because the HACS Action validates public repository metadata. It infers the
+repository from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
 
 The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows—including frontend schema serialization and submission through Home Assistant's authenticated HTTP API—config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.
+
+## Publishing
+
+Finishing a Git Flow release or hotfix must update `manifest.json`,
+`pyproject.toml`, and `CHANGELOG.md`, then create an annotated semantic-version
+tag such as `v0.3.0`. After pushing the completed `main` and `develop` branches,
+push the tag:
+
+```bash
+git push origin main develop
+git push origin v0.3.0
+```
+
+The tag starts the release workflow. It reuses the normal test and validation
+workflows, verifies that the tag matches both stored versions, and creates the
+GitHub Release with generated notes only after every gate passes. Tag pushes do
+not run duplicate standalone CI workflows.
