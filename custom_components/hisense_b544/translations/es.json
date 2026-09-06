@@ -42,7 +42,11 @@
   },
   "config_subentries": {
     "b544": {
-      "title": "Dispositivo B544",
+      "entry_type": "Dispositivo B544",
+      "initiate_flow": {
+        "user": "Añadir dispositivo B544",
+        "reconfigure": "Reconfigurar dispositivo B544"
+      },
       "step": {
         "user": {
           "title": "Añadir dispositivo B544",

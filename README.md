@@ -64,11 +64,14 @@ Enable debug logging for `custom_components.hisense_b544` when diagnosing commun
 Install the reproducible test environment and run all checks with:
 
 ```bash
-pip install '.[test]'
-ruff check .
-ruff format --check .
-coverage run -m pytest -q
-coverage report
+python3 -m venv .venv
+.venv/bin/pip install '.[test]'
+GITHUB_TOKEN=... ./scripts/validate
 ```
+
+The preflight runs the same checks as GitHub Actions: ruff, pytest, coverage,
+Hassfest, and the HACS Action. Docker and a GitHub token are required because
+the HACS Action validates public repository metadata. It infers the repository
+from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
 
 The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows, config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.

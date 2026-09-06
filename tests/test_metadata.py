@@ -24,6 +24,18 @@ def test_manifest_and_hacs_metadata_are_publishable():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert manifest["domain"] == DOMAIN
+    assert list(manifest) == [
+        "domain",
+        "name",
+        "codeowners",
+        "config_flow",
+        "dependencies",
+        "documentation",
+        "integration_type",
+        "iot_class",
+        "issue_tracker",
+        "version",
+    ]
     assert manifest["config_flow"] is True
     assert manifest["dependencies"] == ["modbus"]
     assert manifest["integration_type"] == "hub"
@@ -56,6 +68,10 @@ def test_translations_cover_every_config_flow_field():
             assert set(document["config_subentries"]["b544"]["step"][step]["data"]) == (
                 device_fields
             )
+        subentry = document["config_subentries"]["b544"]
+        assert set(subentry) == {"abort", "entry_type", "error", "initiate_flow", "step"}
+        assert isinstance(subentry["entry_type"], str)
+        assert set(subentry["initiate_flow"]) == {"user", "reconfigure"}
 
 
 def test_all_distributed_python_definitions_have_docstrings():
