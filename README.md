@@ -80,12 +80,12 @@ The suite combines focused protocol unit tests with integration tests running a 
 
 Finishing a Git Flow release or hotfix must update `manifest.json`,
 `pyproject.toml`, and `CHANGELOG.md`, then create an annotated semantic-version
-tag such as `v0.2.2`. After pushing the completed `main` and `develop` branches,
+tag such as `v0.3.0`. After pushing the completed `main` and `develop` branches,
 push the tag:
 
 ```bash
 git push origin main develop
-git push origin v0.2.2
+git push origin v0.3.0
 ```
 
 The tag starts the release workflow. It reuses the normal test and validation
