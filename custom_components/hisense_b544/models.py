@@ -1,6 +1,11 @@
-"""Protocol models and mappings for Hisense B544(E)."""
+"""Protocol and runtime models for Hisense B544(E)."""
 
+import asyncio
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .coordinator import HisenseB544Coordinator
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -24,3 +29,11 @@ class B544State:
     outlet_temperature: int
     raw_di: tuple[bool, ...]
     raw_ir: tuple[int, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class HisenseB544Runtime:
+    """Runtime resources shared by all B544 devices on one bus."""
+
+    coordinators: dict[str, HisenseB544Coordinator]
+    operation_lock: asyncio.Lock

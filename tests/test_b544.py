@@ -13,11 +13,11 @@ class FakeUnit:
 
     async def read_discrete_inputs(self, address, count):
         self.calls.append(("read_discrete_inputs", address, count))
-        return self.di
+        return self.di[address : address + count]
 
     async def read_input_registers(self, address, count):
         self.calls.append(("read_input_registers", address, count))
-        return self.ir
+        return self.ir if count == 15 else [self.ir[address - 1]]
 
     async def write_coil(self, address, value):
         self.calls.append(("write_coil", address, value))
@@ -107,6 +107,10 @@ async def test_incomplete_response_is_rejected_after_the_two_reads():
 
     assert unit.calls == [("read_discrete_inputs", 0, 16), ("read_input_registers", 1, 15)]
 
+    unit = FakeUnit(ir=[0] * 14)
+    with pytest.raises(ValueError, match="incomplete"):
+        await B544Device(unit).async_read_state()
+
 
 @pytest.mark.asyncio
 async def test_invalid_mode_and_fan_are_rejected_without_writing():
@@ -119,3 +123,31 @@ async def test_invalid_mode_and_fan_are_rejected_without_writing():
         await device.async_set_fan(4)
 
     assert unit.calls == []
+
+
+@pytest.mark.asyncio
+async def test_targeted_confirmation_reads_are_single_register_requests():
+    unit = FakeUnit(di=[False, True] + [False] * 14, ir=[0, 25] + [0] * 13)
+    device = B544Device(unit)
+
+    assert await device.async_read_discrete_input(1) is True
+    assert await device.async_read_input_register(2) == 25
+
+    assert unit.calls == [("read_discrete_inputs", 1, 1), ("read_input_registers", 2, 1)]
+
+
+@pytest.mark.asyncio
+async def test_incomplete_targeted_confirmation_responses_are_rejected():
+    class EmptyUnit(FakeUnit):
+        async def read_discrete_inputs(self, address, count):
+            return []
+
+        async def read_input_registers(self, address, count):
+            return []
+
+    device = B544Device(EmptyUnit())
+
+    with pytest.raises(ValueError, match="discrete-input"):
+        await device.async_read_discrete_input(0)
+    with pytest.raises(ValueError, match="input-register"):
+        await device.async_read_input_register(2)

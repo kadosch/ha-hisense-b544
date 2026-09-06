@@ -1,4 +1,94 @@
 {
-  "config": {"step": {"user": {"title": "Hisense B544", "description": "Conecta una unidad B544(E) Modbus RTU.", "data": {"device": "Dispositivo serie", "baudrate": "Baudios", "unit_id": "ID de unidad", "name": "Nombre", "model": "Modelo de unidad interior"}}}, "error": {"cannot_connect": "No se puede conectar al B544", "invalid_unit_id": "El ID de unidad debe estar entre 1 y 255"}},
-  "entity": {"switch": {"sleep": {"name": "Sleep"}, "energy_saving": {"name": "Ahorro de energía"}, "super": {"name": "Super"}, "mute": {"name": "Silencio"}}, "binary_sensor": {"compressor": {"name": "Compresor"}, "defrost": {"name": "Desescarche"}, "electric_heater": {"name": "Calentador eléctrico"}}, "sensor": {"indoor_temperature": {"name": "Temperatura interior"}, "outlet_temperature": {"name": "Temperatura de impulsión"}, "fault_code": {"name": "Código de fallo"}}}
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hisense B544",
+        "description": "Elige el transporte para el bus Modbus compartido.",
+        "data": {"transport": "Transporte"}
+      },
+      "serial": {
+        "title": "Serie RTU",
+        "description": "Configura un bus RS-485 conectado directamente.",
+        "data": {
+          "name": "Nombre del bus",
+          "device": "Dispositivo serie",
+          "baudrate": "Baudios"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP",
+        "description": "Configura un gateway Modbus TCP a RTU.",
+        "data": {
+          "name": "Nombre del bus",
+          "host": "Host del gateway",
+          "port": "Puerto del gateway"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar bus Modbus",
+        "description": "Actualiza la conexión {transport}. Los dispositivos se reconectarán tras recargar el bus.",
+        "data": {
+          "name": "Nombre del bus",
+          "device": "Dispositivo serie",
+          "baudrate": "Baudios",
+          "host": "Host del gateway",
+          "port": "Puerto del gateway"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Este endpoint Modbus ya está configurado"
+    }
+  },
+  "config_subentries": {
+    "b544": {
+      "title": "Dispositivo B544",
+      "step": {
+        "user": {
+          "title": "Añadir dispositivo B544",
+          "description": "Añade un B544(E) a este bus Modbus compartido.",
+          "data": {
+            "unit_id": "ID de unidad",
+            "name": "Nombre del dispositivo",
+            "model": "Modelo de unidad interior",
+            "scan_interval": "Intervalo de sondeo (segundos)"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigurar dispositivo B544",
+          "data": {
+            "unit_id": "ID de unidad",
+            "name": "Nombre del dispositivo",
+            "model": "Modelo de unidad interior",
+            "scan_interval": "Intervalo de sondeo (segundos)"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "No se puede conectar al B544",
+        "invalid_unit_id": "El ID de unidad debe estar entre 1 y 255"
+      },
+      "abort": {
+        "already_configured": "Este ID de unidad ya está configurado en el bus"
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "sleep": {"name": "Sleep"},
+      "energy_saving": {"name": "Ahorro de energía"},
+      "super": {"name": "Super"},
+      "mute": {"name": "Silencio"}
+    },
+    "binary_sensor": {
+      "compressor": {"name": "Compresor"},
+      "defrost": {"name": "Desescarche"},
+      "electric_heater": {"name": "Calentador eléctrico"}
+    },
+    "sensor": {
+      "indoor_temperature": {"name": "Temperatura interior"},
+      "outlet_temperature": {"name": "Temperatura de impulsión"},
+      "fault_code": {"name": "Código de fallo"}
+    }
+  }
 }

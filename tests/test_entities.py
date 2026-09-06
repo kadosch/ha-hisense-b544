@@ -4,7 +4,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, call
 
 import pytest
-from homeassistant.components.climate import HVACMode
+from homeassistant.components.climate import ClimateEntityFeature, HVACMode
+from homeassistant.components.sensor import SensorStateClass
 
 from custom_components.hisense_b544.binary_sensor import (
     DESCRIPTIONS as BINARY_DESCRIPTIONS,
@@ -47,17 +48,14 @@ def state(**changes) -> B544State:
 def coordinator(snapshot: B544State):
     return SimpleNamespace(
         data=snapshot,
-        device=SimpleNamespace(
-            async_set_power=AsyncMock(),
-            async_set_mode=AsyncMock(),
-            async_set_target_temperature=AsyncMock(),
-            async_set_fan=AsyncMock(),
-            async_set_sleep=AsyncMock(),
-            async_set_energy_saving=AsyncMock(),
-            async_set_super=AsyncMock(),
-            async_set_mute=AsyncMock(),
-        ),
-        async_request_refresh=AsyncMock(),
+        async_set_power=AsyncMock(),
+        async_set_mode=AsyncMock(),
+        async_set_target_temperature=AsyncMock(),
+        async_set_fan=AsyncMock(),
+        async_set_sleep=AsyncMock(),
+        async_set_energy_saving=AsyncMock(),
+        async_set_super=AsyncMock(),
+        async_set_mute=AsyncMock(),
         last_update_success=True,
     )
 
@@ -80,11 +78,24 @@ def test_climate_state_maps_power_mode_fan_and_temperatures():
     assert entity.fan_mode is None
 
     entity.coordinator.data = state(mode_code=99)
-    assert entity.hvac_mode is HVACMode.AUTO
+    assert entity.hvac_mode is None
+
+
+def test_climate_has_registry_identity_and_declares_controls():
+    coord = coordinator(state())
+    subentry = SimpleNamespace(
+        subentry_id="device-id", data={"name": "Unit A", "model": "ADT52UX4RCL8"}
+    )
+    entity = HisenseB544Climate(coord, subentry)
+
+    assert entity.unique_id == "device-id_climate"
+    assert entity.supported_features == (
+        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE
+    )
 
 
 @pytest.mark.asyncio
-async def test_climate_commands_refresh_only_after_the_write():
+async def test_climate_commands_use_targeted_confirmation_after_the_write():
     coord = coordinator(state(power=False))
     entity = bare_entity(HisenseB544Climate, coord)
 
@@ -94,11 +105,10 @@ async def test_climate_commands_refresh_only_after_the_write():
     await entity.async_set_hvac_mode(HVACMode.HEAT)
     await entity.async_set_hvac_mode(HVACMode.OFF)
 
-    coord.device.async_set_target_temperature.assert_awaited_once_with(25)
-    coord.device.async_set_fan.assert_awaited_once_with(2)
-    coord.device.async_set_mode.assert_awaited_once_with(1)
-    coord.device.async_set_power.assert_has_awaits([call(True), call(False)])
-    assert coord.async_request_refresh.await_count == 4
+    coord.async_set_target_temperature.assert_awaited_once_with(25)
+    coord.async_set_fan.assert_awaited_once_with(2)
+    coord.async_set_mode.assert_awaited_once_with(1)
+    coord.async_set_power.assert_awaited_once_with(False)
 
 
 @pytest.mark.asyncio
@@ -114,10 +124,9 @@ async def test_switches_reflect_snapshot_and_command_the_correct_helper():
         entity = bare_entity(HisenseB544Switch, coord)
         entity.entity_description = description
         assert entity.is_on is True
+        await entity.async_turn_on()
         await entity.async_turn_off()
-        getattr(coord.device, expected[description.key]).assert_awaited_once_with(False)
-
-    assert coord.async_request_refresh.await_count == 4
+        getattr(coord, expected[description.key]).assert_has_awaits([call(True), call(False)])
 
 
 def test_binary_and_numeric_sensors_expose_only_documented_values():
@@ -139,3 +148,20 @@ def test_binary_and_numeric_sensors_expose_only_documented_values():
         entity.entity_description = description
         values[description.key] = entity.native_value
     assert values == {"indoor_temperature": 21, "outlet_temperature": 19, "fault_code": 7}
+
+
+def test_descriptions_expose_home_assistant_registry_defaults():
+    coord = coordinator(state())
+    subentry = SimpleNamespace(subentry_id="device-id", data={"name": "ADT52", "model": "B544"})
+    entities = [
+        HisenseB544BinarySensor(coord, subentry, BINARY_DESCRIPTIONS[0]),
+        HisenseB544Sensor(coord, subentry, SENSOR_DESCRIPTIONS[0]),
+        HisenseB544Switch(coord, subentry, SWITCH_DESCRIPTIONS[0]),
+    ]
+
+    for entity in entities:
+        assert entity.entity_registry_enabled_default is True
+        assert entity.entity_registry_visible_default is True
+        assert entity.entity_category is None
+
+    assert entities[1].state_class is SensorStateClass.MEASUREMENT

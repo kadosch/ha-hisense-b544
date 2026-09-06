@@ -5,65 +5,75 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 
 from .entity import HisenseB544Entity
 
 
-@dataclass(frozen=True)
-class SwitchDescription:
-    key: str
-    name: str
+@dataclass(frozen=True, kw_only=True)
+class B544SwitchEntityDescription(SwitchEntityDescription):
+    """Describe a writable B544 mode switch."""
+
     state: Callable
     command: Callable[[object, bool], Awaitable[None]]
 
 
 DESCRIPTIONS = (
-    SwitchDescription(
-        "sleep",
-        "Sleep",
-        lambda data: data.sleep,
-        lambda device, value: device.async_set_sleep(value),
+    B544SwitchEntityDescription(
+        key="sleep",
+        translation_key="sleep",
+        state=lambda data: data.sleep,
+        command=lambda coordinator, value: coordinator.async_set_sleep(value),
     ),
-    SwitchDescription(
-        "energy_saving",
-        "Energy Saving",
-        lambda data: data.energy_saving,
-        lambda device, value: device.async_set_energy_saving(value),
+    B544SwitchEntityDescription(
+        key="energy_saving",
+        translation_key="energy_saving",
+        state=lambda data: data.energy_saving,
+        command=lambda coordinator, value: coordinator.async_set_energy_saving(value),
     ),
-    SwitchDescription(
-        "super",
-        "Super",
-        lambda data: data.super_mode,
-        lambda device, value: device.async_set_super(value),
+    B544SwitchEntityDescription(
+        key="super",
+        translation_key="super",
+        state=lambda data: data.super_mode,
+        command=lambda coordinator, value: coordinator.async_set_super(value),
     ),
-    SwitchDescription(
-        "mute", "Mute", lambda data: data.mute, lambda device, value: device.async_set_mute(value)
+    B544SwitchEntityDescription(
+        key="mute",
+        translation_key="mute",
+        state=lambda data: data.mute,
+        command=lambda coordinator, value: coordinator.async_set_mute(value),
     ),
 )
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    async_add_entities(
-        HisenseB544Switch(entry.runtime_data, entry, description) for description in DESCRIPTIONS
-    )
+    """Set up B544 switches for every device subentry."""
+    for subentry_id, coordinator in entry.runtime_data.coordinators.items():
+        subentry = entry.subentries[subentry_id]
+        async_add_entities(
+            (HisenseB544Switch(coordinator, subentry, description) for description in DESCRIPTIONS),
+            config_subentry_id=subentry_id,
+        )
 
 
 class HisenseB544Switch(HisenseB544Entity, SwitchEntity):
-    def __init__(self, coordinator, entry, description: SwitchDescription) -> None:
-        super().__init__(coordinator, entry)
+    """Represent a documented writable B544 mode."""
+
+    def __init__(self, coordinator, subentry, description: B544SwitchEntityDescription) -> None:
+        """Initialize a B544 switch."""
+        super().__init__(coordinator, subentry)
         self.entity_description = description
-        self._attr_translation_key = description.key
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{subentry.subentry_id}_{description.key}"
 
     @property
     def is_on(self):
+        """Return the switch state from the authoritative snapshot."""
         return self.entity_description.state(self.coordinator.data)
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self.entity_description.command(self.coordinator.device, True)
-        await self.coordinator.async_request_refresh()
+        """Enable and authoritatively confirm the represented mode."""
+        await self.entity_description.command(self.coordinator, True)
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.entity_description.command(self.coordinator.device, False)
-        await self.coordinator.async_request_refresh()
+        """Disable and authoritatively confirm the represented mode."""
+        await self.entity_description.command(self.coordinator, False)

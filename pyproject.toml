@@ -4,9 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ha-hisense-b544"
-version = "0.1.0"
-description = "Home Assistant custom integration for Hisense B544(E) over Modbus RTU"
-requires-python = ">=3.13"
+version = "0.2.0"
+description = "Home Assistant custom integration for Hisense B544(E) over Modbus RTU or TCP"
+requires-python = ">=3.14.2"
+
+[project.optional-dependencies]
+test = [
+    "modbus-connection[tmodbus]==4.10.0",
+    "pymodbus==3.13.1",
+    "pytest-homeassistant-custom-component==0.13.363",
+    "ruff",
+    "tmodbus==0.6.2",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -18,11 +27,17 @@ source = ["custom_components.hisense_b544"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 75
+fail_under = 90
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["E", "F", "I", "UP", "B", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["D"]

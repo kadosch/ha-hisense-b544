@@ -4,17 +4,19 @@ on:
   push:
   pull_request:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
-      - run: pip install homeassistant 'modbus-connection[tmodbus]' pymodbus pytest pytest-asyncio coverage ruff
+          python-version: "3.14"
+      - run: pip install '.[test]'
       - run: ruff check .
+      - run: ruff format --check .
       - run: coverage run -m pytest
       - run: coverage report

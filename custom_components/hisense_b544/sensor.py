@@ -5,55 +5,67 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
 from homeassistant.const import UnitOfTemperature
 
 from .entity import HisenseB544Entity
 
 
-@dataclass(frozen=True)
-class SensorDescription:
-    key: str
-    name: str
-    value: Callable
-    device_class: SensorDeviceClass | None = None
-    native_unit_of_measurement: str | None = None
+@dataclass(frozen=True, kw_only=True)
+class B544SensorEntityDescription(SensorEntityDescription):
+    """Describe a B544 numeric sensor."""
+
+    value_fn: Callable
 
 
 DESCRIPTIONS = (
-    SensorDescription(
-        "indoor_temperature",
-        "Indoor temperature",
-        lambda data: data.indoor_temperature,
-        SensorDeviceClass.TEMPERATURE,
-        UnitOfTemperature.CELSIUS,
+    B544SensorEntityDescription(
+        key="indoor_temperature",
+        translation_key="indoor_temperature",
+        value_fn=lambda data: data.indoor_temperature,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    SensorDescription(
-        "outlet_temperature",
-        "Outlet air temperature",
-        lambda data: data.outlet_temperature,
-        SensorDeviceClass.TEMPERATURE,
-        UnitOfTemperature.CELSIUS,
+    B544SensorEntityDescription(
+        key="outlet_temperature",
+        translation_key="outlet_temperature",
+        value_fn=lambda data: data.outlet_temperature,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
-    SensorDescription("fault_code", "Fault code", lambda data: data.fault_code),
+    B544SensorEntityDescription(
+        key="fault_code", translation_key="fault_code", value_fn=lambda data: data.fault_code
+    ),
 )
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    async_add_entities(
-        HisenseB544Sensor(entry.runtime_data, entry, description) for description in DESCRIPTIONS
-    )
+    """Set up B544 sensors for every device subentry."""
+    for subentry_id, coordinator in entry.runtime_data.coordinators.items():
+        subentry = entry.subentries[subentry_id]
+        async_add_entities(
+            (HisenseB544Sensor(coordinator, subentry, description) for description in DESCRIPTIONS),
+            config_subentry_id=subentry_id,
+        )
 
 
 class HisenseB544Sensor(HisenseB544Entity, SensorEntity):
-    def __init__(self, coordinator, entry, description: SensorDescription) -> None:
-        super().__init__(coordinator, entry)
+    """Represent a documented B544 numeric value."""
+
+    def __init__(self, coordinator, subentry, description: B544SensorEntityDescription) -> None:
+        """Initialize a B544 sensor."""
+        super().__init__(coordinator, subentry)
         self.entity_description = description
-        self._attr_translation_key = description.key
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_class = description.device_class
-        self._attr_native_unit_of_measurement = description.native_unit_of_measurement
+        self._attr_unique_id = f"{subentry.subentry_id}_{description.key}"
 
     @property
     def native_value(self):
-        return self.entity_description.value(self.coordinator.data)
+        """Return the value from the authoritative coordinator snapshot."""
+        return self.entity_description.value_fn(self.coordinator.data)

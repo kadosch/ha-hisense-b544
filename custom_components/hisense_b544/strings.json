@@ -3,15 +3,92 @@
     "step": {
       "user": {
         "title": "Hisense B544",
-        "description": "Connect one B544(E) Modbus RTU unit.",
-        "data": {"device": "Serial device", "baudrate": "Baud rate", "unit_id": "Unit ID", "name": "Name", "model": "Indoor unit model"}
+        "description": "Choose the transport for the shared Modbus bus.",
+        "data": {"transport": "Transport"}
+      },
+      "serial": {
+        "title": "Serial RTU",
+        "description": "Configure a directly attached RS-485 bus.",
+        "data": {
+          "name": "Bus name",
+          "device": "Serial device",
+          "baudrate": "Baud rate"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP",
+        "description": "Configure a Modbus TCP to RTU gateway.",
+        "data": {
+          "name": "Bus name",
+          "host": "Gateway host",
+          "port": "Gateway port"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Modbus bus",
+        "description": "Update the {transport} connection settings. Devices reconnect after the bus reloads.",
+        "data": {
+          "name": "Bus name",
+          "device": "Serial device",
+          "baudrate": "Baud rate",
+          "host": "Gateway host",
+          "port": "Gateway port"
+        }
       }
     },
-    "error": {"cannot_connect": "Cannot connect to the B544", "invalid_unit_id": "Unit ID must be between 1 and 255"}
+    "abort": {
+      "already_configured": "This Modbus endpoint is already configured"
+    }
+  },
+  "config_subentries": {
+    "b544": {
+      "title": "B544 device",
+      "step": {
+        "user": {
+          "title": "Add B544 device",
+          "description": "Add one B544(E) on this shared Modbus bus.",
+          "data": {
+            "unit_id": "Unit ID",
+            "name": "Device name",
+            "model": "Indoor unit model",
+            "scan_interval": "Polling interval (seconds)"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure B544 device",
+          "data": {
+            "unit_id": "Unit ID",
+            "name": "Device name",
+            "model": "Indoor unit model",
+            "scan_interval": "Polling interval (seconds)"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Cannot connect to the B544",
+        "invalid_unit_id": "Unit ID must be between 1 and 255"
+      },
+      "abort": {
+        "already_configured": "This Unit ID is already configured on the bus"
+      }
+    }
   },
   "entity": {
-    "switch": {"sleep": {"name": "Sleep"}, "energy_saving": {"name": "Energy Saving"}, "super": {"name": "Super"}, "mute": {"name": "Mute"}},
-    "binary_sensor": {"compressor": {"name": "Compressor"}, "defrost": {"name": "Defrost"}, "electric_heater": {"name": "Electric Heater"}},
-    "sensor": {"indoor_temperature": {"name": "Indoor temperature"}, "outlet_temperature": {"name": "Outlet air temperature"}, "fault_code": {"name": "Fault code"}}
+    "switch": {
+      "sleep": {"name": "Sleep"},
+      "energy_saving": {"name": "Energy Saving"},
+      "super": {"name": "Super"},
+      "mute": {"name": "Mute"}
+    },
+    "binary_sensor": {
+      "compressor": {"name": "Compressor"},
+      "defrost": {"name": "Defrost"},
+      "electric_heater": {"name": "Electric Heater"}
+    },
+    "sensor": {
+      "indoor_temperature": {"name": "Indoor temperature"},
+      "outlet_temperature": {"name": "Outlet air temperature"},
+      "fault_code": {"name": "Fault code"}
+    }
   }
 }
