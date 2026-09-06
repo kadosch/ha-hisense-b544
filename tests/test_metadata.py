@@ -27,7 +27,7 @@ def test_manifest_and_hacs_metadata_are_publishable():
     assert manifest["documentation"].startswith("https://github.com/")
     assert "OWNER" not in manifest["documentation"]
     assert manifest["issue_tracker"].endswith("/issues")
-    assert hacs == {"name": "Hisense B544", "homeassistant": "2026.9.1"}
+    assert hacs == {"name": "Hisense B544", "homeassistant": "2026.9.0"}
 
 
 def test_translations_cover_every_config_flow_field():
