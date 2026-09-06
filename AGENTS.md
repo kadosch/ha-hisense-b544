@@ -172,14 +172,19 @@ translation, unknown registers, discovery, BACnet, and unvalidated units.
 Run before delivery:
 
 ```bash
-.venv/bin/ruff check .
-.venv/bin/ruff format --check .
-.venv/bin/coverage run -m pytest -q
-.venv/bin/coverage report
+python3 -m venv .venv
+.venv/bin/pip install '.[test]'
+GITHUB_TOKEN=... ./scripts/validate
 ```
 
-CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 90%).
-Add tests for changes to addresses, grouped reads, write order, or config flow.
+This is the mandatory preflight before finishing a feature, hotfix, or release.
+It runs ruff, pytest, coverage, and the official Hassfest and HACS Action Docker
+images. `GITHUB_TOKEN` is required because HACS validates remote GitHub metadata
+such as topics, description, issues, and license. `HACS_REPOSITORY` can override
+the GitHub owner/repository inferred from `origin`.
+
+CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 90%). Add
+tests for changes to addresses, grouped reads, write order, or config flow.
 Keep focused unit tests for protocol edge cases and use the in-memory HA suite
 for config flows, registries, entity states, services, reloads, and recovery.
 Keep executable files under `custom_components/hisense_b544/`, preserve

@@ -4,6 +4,7 @@
 
 - Fix Home Assistant translation metadata required for B544 config subentries.
 - Sort manifest metadata according to the current Hassfest requirement.
+- Add a local CI-equivalent preflight for feature, hotfix, and release closure.
 
 ## 0.2.0 - 2026-09-06
 

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Run the complete local equivalent of the repository CI checks.
+
+set -euo pipefail
+
+repository_root="$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)"
+cd "$repository_root"
+
+if [[ ! -x .venv/bin/ruff || ! -x .venv/bin/coverage ]]; then
+  echo "Create the test environment with: python3 -m venv .venv && .venv/bin/pip install '.[test]'" >&2
+  exit 1
+fi
+
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/coverage erase
+.venv/bin/coverage run -m pytest -q
+.venv/bin/coverage report
+
+docker run --rm --pull=always \
+  -v "$repository_root:/github/workspace" \
+  ghcr.io/home-assistant/hassfest
+
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo "GITHUB_TOKEN is required for the HACS repository validation." >&2
+  exit 1
+fi
+
+if [[ -n "${HACS_REPOSITORY:-}" ]]; then
+  hacs_repository="$HACS_REPOSITORY"
+else
+  origin_url="$(git remote get-url origin)"
+  case "$origin_url" in
+    https://github.com/*)
+      hacs_repository="${origin_url#https://github.com/}"
+      ;;
+    git@github.com:*)
+      hacs_repository="${origin_url#git@github.com:}"
+      ;;
+    *)
+      echo "Set HACS_REPOSITORY to the GitHub owner/repository value." >&2
+      exit 1
+      ;;
+  esac
+  hacs_repository="${hacs_repository%.git}"
+fi
+
+docker run --rm --pull=always \
+  -e INPUT_CATEGORY=integration \
+  -e INPUT_COMMENT=false \
+  -e "INPUT_REPOSITORY=$hacs_repository" \
+  -e GITHUB_TOKEN \
+  -v "$repository_root:/github/workspace" \
+  ghcr.io/hacs/action:main
