@@ -70,8 +70,25 @@ GITHUB_TOKEN=... ./scripts/validate
 ```
 
 The preflight runs the same checks as GitHub Actions: ruff, pytest, coverage,
-Hassfest, and the HACS Action. Docker and a GitHub token are required because
-the HACS Action validates public repository metadata. It infers the repository
-from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
+actionlint, Hassfest, and the HACS Action. Docker and a GitHub token are required
+because the HACS Action validates public repository metadata. It infers the
+repository from `origin`; set `HACS_REPOSITORY=owner/repository` to override it.
 
 The suite combines focused protocol unit tests with integration tests running a real in-memory Home Assistant instance. Integration-owned config flows—including frontend schema serialization and submission through Home Assistant's authenticated HTTP API—config entries, subentries, coordinators, platforms, services, state machine, Entity Registry, and Device Registry are exercised together. Only the external `ModbusUnit` boundary is replaced by a stateful fake.
+
+## Publishing
+
+Finishing a Git Flow release or hotfix must update `manifest.json`,
+`pyproject.toml`, and `CHANGELOG.md`, then create an annotated semantic-version
+tag such as `v0.2.2`. After pushing the completed `main` and `develop` branches,
+push the tag:
+
+```bash
+git push origin main develop
+git push origin v0.2.2
+```
+
+The tag starts the release workflow. It reuses the normal test and validation
+workflows, verifies that the tag matches both stored versions, and creates the
+GitHub Release with generated notes only after every gate passes. Tag pushes do
+not run duplicate standalone CI workflows.

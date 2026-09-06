@@ -178,13 +178,22 @@ GITHUB_TOKEN=... ./scripts/validate
 ```
 
 This is the mandatory preflight before finishing a feature, hotfix, or release.
-It runs ruff, pytest, coverage, and the official Hassfest and HACS Action Docker
-images. `GITHUB_TOKEN` is required because HACS validates remote GitHub metadata
-such as topics, description, issues, and license. `HACS_REPOSITORY` can override
-the GitHub owner/repository inferred from `origin`.
+It runs ruff, pytest, coverage, actionlint, and the official Hassfest and HACS
+Action Docker images. `GITHUB_TOKEN` is required because HACS validates remote
+GitHub metadata such as topics, description, issues, and license.
+`HACS_REPOSITORY` can override the GitHub owner/repository inferred from
+`origin`.
 
-CI runs HACS validation, hassfest, ruff, pytest, and coverage (minimum 90%). Add
-tests for changes to addresses, grouped reads, write order, or config flow.
+Finishing a Git Flow release or hotfix must update the manifest, project
+metadata, and changelog to the same version and create an annotated `vX.Y.Z`
+tag on `main`. Once the completed branches and tag are pushed, the tag-triggered
+release workflow reuses the test and validation workflows, checks version
+consistency, and creates the GitHub Release. Do not create the GitHub Release
+manually or bypass failed release gates.
+
+CI runs HACS validation, hassfest, actionlint, ruff, pytest, and coverage
+(minimum 90%). Add tests for changes to addresses, grouped reads, write order,
+or config flow.
 Keep focused unit tests for protocol edge cases and use the in-memory HA suite
 for config flows, registries, entity states, services, reloads, and recovery.
 Every user-facing config or subentry form must use frontend-serializable Home
